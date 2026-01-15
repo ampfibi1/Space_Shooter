@@ -94,37 +94,143 @@ void drawMenu() {
 
 // -------------------- Draw Player ----------------
 void drawPlayer() {
-    glColor3f(0, 1, 0);
+    // -------- Main Body --------
+    glColor3f(0.2f, 0.8f, 0.2f); // dark green
     glBegin(GL_TRIANGLES);
-        glVertex2f(playerX, playerY + 20);
-        glVertex2f(playerX - 15, playerY - 20);
-        glVertex2f(playerX + 15, playerY - 20);
+        glVertex2f(playerX, playerY + 25);    // nose
+        glVertex2f(playerX - 20, playerY - 20); // bottom-left
+        glVertex2f(playerX + 20, playerY - 20); // bottom-right
+    glEnd();
+
+    // -------- Cockpit --------
+    glColor3f(0.0f, 0.5f, 1.0f); // blue
+    glBegin(GL_POLYGON);
+        glVertex2f(playerX - 7, playerY + 5);
+        glVertex2f(playerX + 7, playerY + 5);
+        glVertex2f(playerX + 4, playerY - 5);
+        glVertex2f(playerX - 4, playerY - 5);
+    glEnd();
+
+    // -------- Left Wing --------
+    glColor3f(0.1f, 0.6f, 0.1f);
+    glBegin(GL_QUADS);
+        glVertex2f(playerX - 20, playerY - 5);
+        glVertex2f(playerX - 35, playerY - 15);
+        glVertex2f(playerX - 30, playerY - 25);
+        glVertex2f(playerX - 15, playerY - 15);
+    glEnd();
+
+    // -------- Right Wing --------
+    glBegin(GL_QUADS);
+        glVertex2f(playerX + 20, playerY - 5);
+        glVertex2f(playerX + 35, playerY - 15);
+        glVertex2f(playerX + 30, playerY - 25);
+        glVertex2f(playerX + 15, playerY - 15);
+    glEnd();
+
+    // -------- Thrusters --------
+    glColor3f(1.0f, 0.5f, 0.0f); // orange flame
+    glBegin(GL_TRIANGLES);
+        glVertex2f(playerX - 7, playerY - 20); // left thruster
+        glVertex2f(playerX + 7, playerY - 20); // right thruster
+        glVertex2f(playerX, playerY - 35);     // tip of flame
+    glEnd();
+
+    // -------- Wing details (lines) --------
+    glColor3f(0.0f, 0.0f, 0.0f); // black
+    glBegin(GL_LINES);
+        glVertex2f(playerX - 20, playerY - 5);
+        glVertex2f(playerX - 30, playerY - 25);
+
+        glVertex2f(playerX + 20, playerY - 5);
+        glVertex2f(playerX + 30, playerY - 25);
+
+        glVertex2f(playerX - 7, playerY + 5);
+        glVertex2f(playerX - 4, playerY - 5);
+
+        glVertex2f(playerX + 7, playerY + 5);
+        glVertex2f(playerX + 4, playerY - 5);
     glEnd();
 }
 
+
+
 // -------------------- Draw Bullets ---------------
 void drawBullets() {
-    glColor3f(1, 1, 0);
     for (auto &b : bullets) {
+        // Main laser body (yellow)
+        glColor3f(1.0f, 1.0f, 0.0f);
         glBegin(GL_QUADS);
-            glVertex2f(b.x - 2, b.y);
-            glVertex2f(b.x + 2, b.y);
-            glVertex2f(b.x + 2, b.y + 10);
-            glVertex2f(b.x - 2, b.y + 10);
+            glVertex2f(b.x - 2, b.y);      // bottom-left
+            glVertex2f(b.x + 2, b.y);      // bottom-right
+            glVertex2f(b.x + 2, b.y + 10); // top-right
+            glVertex2f(b.x - 2, b.y + 10); // top-left
+        glEnd();
+
+        // Laser tip (bright white)
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glBegin(GL_TRIANGLES);
+            glVertex2f(b.x - 2, b.y + 10); // left base of tip
+            glVertex2f(b.x + 2, b.y + 10); // right base of tip
+            glVertex2f(b.x, b.y + 15);     // tip point
         glEnd();
     }
 }
 
+
 // -------------------- Draw Enemy -----------------
 void drawEnemy() {
-    glColor3f(1, 0, 0);
-    glBegin(GL_QUADS);
-        glVertex2f(enemyX - 20, enemyY - 20);
-        glVertex2f(enemyX + 20, enemyY - 20);
-        glVertex2f(enemyX + 20, enemyY + 20);
-        glVertex2f(enemyX - 20, enemyY + 20);
+    // -------- Main Body (red triangle) --------
+    glColor3f(0.8f, 0.0f, 0.0f); // red
+    glBegin(GL_TRIANGLES);
+        glVertex2f(enemyX, enemyY + 20);    // nose
+        glVertex2f(enemyX - 15, enemyY - 20); // bottom-left
+        glVertex2f(enemyX + 15, enemyY - 20); // bottom-right
+    glEnd();
+
+    // -------- Cockpit / Core (dark red) --------
+    glColor3f(0.5f, 0.0f, 0.0f);
+    glBegin(GL_POLYGON);
+        glVertex2f(enemyX - 5, enemyY + 5);
+        glVertex2f(enemyX + 5, enemyY + 5);
+        glVertex2f(enemyX + 3, enemyY - 5);
+        glVertex2f(enemyX - 3, enemyY - 5);
+    glEnd();
+
+    // -------- Left spike wing --------
+    glColor3f(0.6f, 0.0f, 0.0f);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(enemyX - 15, enemyY - 5);
+        glVertex2f(enemyX - 25, enemyY - 15);
+        glVertex2f(enemyX - 15, enemyY - 15);
+    glEnd();
+
+    // -------- Right spike wing --------
+    glBegin(GL_TRIANGLES);
+        glVertex2f(enemyX + 15, enemyY - 5);
+        glVertex2f(enemyX + 25, enemyY - 15);
+        glVertex2f(enemyX + 15, enemyY - 15);
+    glEnd();
+
+    // -------- Thruster flames (small, dark orange) --------
+    glColor3f(1.0f, 0.3f, 0.0f);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(enemyX - 5, enemyY - 20); // left thruster
+        glVertex2f(enemyX + 5, enemyY - 20); // right thruster
+        glVertex2f(enemyX, enemyY - 30);     // tip
+    glEnd();
+
+    // -------- Aggressive detailing (spikes) --------
+    glColor3f(0.3f, 0.0f, 0.0f);
+    glBegin(GL_LINES);
+        glVertex2f(enemyX - 15, enemyY - 5);
+        glVertex2f(enemyX - 25, enemyY - 15);
+
+        glVertex2f(enemyX + 15, enemyY - 5);
+        glVertex2f(enemyX + 25, enemyY - 15);
     glEnd();
 }
+
 
 // -------------------- Update Game ----------------
 void update(int value) {
