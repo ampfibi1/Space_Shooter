@@ -2,10 +2,16 @@
 #include <vector>
 #include <cstdlib>
 #include <cmath>
+#include <cstdio>
 
 // -------------------- Window --------------------
 int windowWidth = 800, windowHeight = 600;
-
+//---btnproperty----
+float btnWidth = 100;
+float btnHeight = 40;
+float centerX;
+float startY;
+float gap = 60;
 // -------------------- Game State ----------------
 // 0 = MENU
 // 1 = PLAYING
@@ -56,12 +62,35 @@ void drawText(float x, float y, const char* text) {
 }
 
 // -------------------- Draw Menu -----------------
+void drawButton(float x, float y, float width, float height, const char* label) {
+    glColor3f(0.2f, 0.6f, 0.8f);
+    glBegin(GL_QUADS);
+        glVertex2f(x - width/2, y - height/2);
+        glVertex2f(x + width/2, y - height/2);
+        glVertex2f(x + width/2, y + height/2);
+        glVertex2f(x - width/2, y + height/2);
+    glEnd();
+
+    glColor3f(1, 1, 1);
+    drawText(x - width/4, y - 5, label); // adjust -5 for vertical centering
+}
+
 void drawMenu() {
     glColor3f(1, 1, 1);
-    drawText(300, 400, "SPACE SHOOTER");
-    drawText(260, 320, "Press N to Start New Game");
-    drawText(280, 280, "Level starts from 1");
+    drawText(320, 500, "SPACE SHOOTER");
+
+    // Use globals
+    centerX = windowWidth / 2;
+    startY = windowHeight / 2 + 100;
+
+    for(int i = 0; i < 5; i++) {
+        float y = startY - i * gap;
+        char label[10];
+        sprintf(label, "Level %d", i + 1);
+        drawButton(centerX, y, btnWidth, btnHeight, label);
+    }
 }
+
 
 // -------------------- Draw Player ----------------
 void drawPlayer() {
@@ -141,7 +170,12 @@ void update(int value) {
     glutPostRedisplay();
     glutTimerFunc(16, update, 0);
 }
-
+//----------------------lvl---
+void level1() { printf("Level 1 Started!\n"); }
+void level2() { printf("Level 2 Started!\n"); }
+void level3() { printf("Level 3 Started!\n"); }
+void level4() { printf("Level 4 Started!\n"); }
+void level5() { printf("Level 5 Started!\n"); }
 // -------------------- Display --------------------
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -181,7 +215,32 @@ void keyUp(int key, int x, int y) {
     if (key == GLUT_KEY_LEFT) keyLeft = false;
     if (key == GLUT_KEY_RIGHT) keyRight = false;
 }
+//--------------mourse handle
+void mouseClick(int button, int state, int mouseX, int mouseY) {
+    if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && gameState == 0) {
+        // Convert y-coordinate from top-left origin to OpenGL bottom-left origin
+        int y = windowHeight - mouseY;
 
+        for(int i = 0; i < 5; i++) {
+            float btnY = startY - i * gap;
+            float left = centerX - btnWidth/2;
+            float right = centerX + btnWidth/2;
+            float bottom = btnY - btnHeight/2;
+            float top = btnY + btnHeight/2;
+
+            if(mouseX >= left && mouseX <= right && y >= bottom && y <= top) {
+                // Call the corresponding level function
+                switch(i) {
+                    case 0: level1(); break;
+                    case 1: level2(); break;
+                    case 2: level3(); break;
+                    case 3: level4(); break;
+                    case 4: level5(); break;
+                }
+            }
+        }
+    }
+}
 // -------------------- Init -----------------------
 void init() {
     glClearColor(0, 0, 0, 1);
@@ -189,19 +248,31 @@ void init() {
     gluOrtho2D(0, windowWidth, 0, windowHeight);
 }
 
+//----- force the window to original size
+void reshape(int w, int h) {
+    glutReshapeWindow(windowWidth, windowHeight);
+}
 // -------------------- Main -----------------------
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    glutInitDisplayMode(GLUT_SINGLE  | GLUT_RGB);
     glutInitWindowSize(windowWidth, windowHeight);
+    int screenWidth  = glutGet(GLUT_SCREEN_WIDTH);
+    int screenHeight = glutGet(GLUT_SCREEN_HEIGHT);
+    glutInitWindowPosition(
+        (screenWidth - windowWidth) / 2,
+        (screenHeight - windowHeight) / 2 -40
+    );
     glutCreateWindow("Space Shooter");
 
     init();
 
     glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
     glutKeyboardFunc(keyPress);
     glutSpecialFunc(keyDown);
     glutSpecialUpFunc(keyUp);
+    glutMouseFunc(mouseClick);
     glutTimerFunc(0, update, 0);
 
     glutMainLoop();
