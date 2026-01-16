@@ -18,7 +18,6 @@ float gap = 60;
 // 1 = PLAYING
 int gameState = 0;
 
-
 // -------------------- Level ---------------------
 int level = 1;
 
@@ -41,19 +40,22 @@ bool keyLeft = false;
 bool keyRight = false;
 
 // -------------------- Reset Game ----------------
-void resetGame() {
+void resetGame(int selectedLevel) {
     playerX = windowWidth / 2;
     playerY = 50;
 
     enemyX = windowWidth / 2;
     enemyY = 550;
-    enemySpeed = 3;
+
+    level = selectedLevel;
+
+    // Increase difficulty per level
+    enemySpeed = 2 + level;
 
     bullets.clear();
-    level = 1;
-
     gameState = 1; // PLAYING
 }
+
 
 // -------------------- Draw Text -----------------
 void drawText(float x, float y, const char* text) {
@@ -296,21 +298,25 @@ void display() {
         drawBullets();
         drawEnemy();
     }
+    else if (gameState==4){
+        //lvl
+    }
+    else if(gameState==-5){
+        //lvl5
+    }
 
     glFlush();
 }
 
 // -------------------- Keyboard -------------------
 void keyPress(unsigned char key, int x, int y) {
-
-    // New Game
-    if (gameState == 0 && (key == 'n' || key == 'N')) {
-        resetGame();
-    }
-
     // Shoot
     if (gameState == 1 && key == ' ') {
         bullets.push_back({playerX, playerY + 20});
+    }
+    //backtomenu
+    if (gameState == 1 && key == 27) {   // ESC key
+        gameState = 0;
     }
 }
 
@@ -326,29 +332,23 @@ void keyUp(int key, int x, int y) {
 //--------------mourse handle
 void mouseClick(int button, int state, int mouseX, int mouseY) {
     if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && gameState == 0) {
-        // Convert y-coordinate from top-left origin to OpenGL bottom-left origin
+
         int y = windowHeight - mouseY;
 
         for(int i = 0; i < 5; i++) {
             float btnY = startY - i * gap;
-            float left = centerX - btnWidth/2;
-            float right = centerX + btnWidth/2;
-            float bottom = btnY - btnHeight/2;
-            float top = btnY + btnHeight/2;
+            float left   = centerX - btnWidth / 2;
+            float right  = centerX + btnWidth / 2;
+            float bottom = btnY - btnHeight / 2;
+            float top    = btnY + btnHeight / 2;
 
             if(mouseX >= left && mouseX <= right && y >= bottom && y <= top) {
-                // Call the corresponding level function
-                switch(i) {
-                    case 0: level1(); break;
-                    case 1: level2(); break;
-                    case 2: level3(); break;
-                    case 3: level4(); break;
-                    case 4: level5(); break;
-                }
+                resetGame(i + 1);  // Start game directly
             }
         }
     }
 }
+
 // -------------------- Init -----------------------
 void init() {
     glClearColor(0, 0, 0, 1);
