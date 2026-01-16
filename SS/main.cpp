@@ -314,8 +314,98 @@ void update(int value) {
 void level1() { printf("Level 1 Started!\n"); }
 void level2() { printf("Level 2 Started!\n"); }
 void level3() { printf("Level 3 Started!\n"); }
-void level4() { printf("Level 4 Started!\n"); }
-void level5() { printf("Level 5 Started!\n"); }
+//-----------------lvl-4-----------------------
+void drawlvl4Enemy(){
+
+}
+void level4() {
+     printf("Level 4 Started!\n");
+}
+//-----------------lvl-5-----------------------
+void drawCircle(double cx, double cy, double r, int num_segments = 50) {
+    glBegin(GL_POLYGON); // or GL_LINE_LOOP if you want just the outline
+    for(int i = 0; i < num_segments; i++) {
+        double theta = 2.0 * 3.1415926 * double(i) / double(num_segments); // angle
+        double x = r * cos(theta); // x offset
+        double y = r * sin(theta); // y offset
+        glVertex2d(cx + x, cy + y);
+    }
+    glEnd();
+}
+
+
+void drawlvl5Enemy()
+{
+    int bx = 400,by =300;
+    //left arm
+    glPushMatrix();
+    glTranslated(bx, by, 0);   // move to position
+    glScalef(6, 6, 0); // scale ×2
+    glTranslated(-bx, -by, 0); // move back
+    glColor3f(1,0,0);
+    //--la
+    glBegin(GL_POLYGON);
+        glVertex2d(bx-10,by+1);
+        glVertex2d(bx-8.5,by+2);
+        glVertex2d(bx-6,by-2);
+        glVertex2d(bx-11,by-5);
+        glVertex2d(bx-14,by-5);
+        glVertex2d(bx-16,by-4);
+        glVertex2d(bx-21,by);
+        glVertex2d(bx-21,by+3);
+        glVertex2d(bx-23,by+4);
+        glVertex2d(bx-20,by+8);
+        glVertex2d(bx-19,by+7);
+        glVertex2d(bx-17,by+6);
+        glVertex2d(bx-16,by+6);
+    glEnd();
+
+    //--ra
+    glBegin(GL_POLYGON);
+        glVertex2d(bx+12,by-11);
+        glVertex2d(bx+12,by-16);
+        glVertex2d(bx+2,by-29);
+        glVertex2d(bx-1,by-30);
+        glVertex2d(bx-4,by-30);
+        glVertex2d(bx-9,by-28);
+        glVertex2d(bx-5,by-31);
+        glVertex2d(bx,by-33);
+        glVertex2d(bx+3,by-33);
+        glVertex2d(bx+20,by-15);
+        glVertex2d(bx+20,by-3);
+        glVertex2d(bx+18.8,by-2);
+        glVertex2d(bx+19,by-1);
+        glVertex2d(bx+18,by);
+        glVertex2d(bx+17,by);
+        glVertex2d(bx+4,by-9);
+        glVertex2d(bx+5,by-10);
+        glVertex2d(bx+6,by-11);
+        glVertex2d(bx+12,by-11);
+    glEnd();
+    //-antenna
+    glBegin(GL_POLYGON);
+        glVertex2d(bx-13,by+15);
+        glVertex2d(bx-12,by+16);
+        glVertex2d(bx-10,by+16);
+        glVertex2d(bx-4,by+11);
+        glVertex2d(bx-8,by+5);
+        glVertex2d(bx-12,by+10);
+        glVertex2d(bx-13,by+13);
+        glVertex2d(bx-13,by+15);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2d(bx-13,by+15);
+        glVertex2d(bx-18,by+20);
+
+    glEnd();
+    drawCircle(bx-18, by+20, 1.0);
+
+    glPopMatrix();
+}
+void level5() {
+    printf("Level 5 Started!\n");
+    drawlvl5Enemy();
+}
 // -------------------- Display --------------------
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -331,11 +421,9 @@ void display() {
         drawEnemy();
     }
     else if (gameState == 1 && level ==4){
-        //lvl
         level4();
     }
     else if(gameState == 1 && level ==5){
-        //lvl5
         level5();
     }
 
