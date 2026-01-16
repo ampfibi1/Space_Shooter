@@ -41,6 +41,12 @@ std::vector<Star> stars;
 // -------------------- Enemy ---------------------
 float enemyX = 400, enemyY = 550;
 float enemySpeed = 3;
+float enemyDX = 2.5f;
+float enemyDY = 2.0f;
+int bossMaxHP = 200;
+int bossHP    = 200;
+float bossWidth  = 120;   // sprite width
+float bossHeight = 140;   // sprite height
 
 // -------------------- Input ---------------------
 bool keyLeft = false;
@@ -287,26 +293,75 @@ void update(int value) {
             }
         }
 
-        // Enemy movement
-        enemyY -= enemySpeed;
-        if (enemyY < 0) {
-            enemyY = 550;
-            enemyX = rand() % (windowWidth - 40) + 20;
-        }
-
-        // Collision detection
-        for (int i = 0; i < bullets.size(); i++) {
-            if (abs(bullets[i].x - enemyX) < 20 &&
-                abs(bullets[i].y - enemyY) < 20) {
-
-                bullets.erase(bullets.begin() + i);
+        if(level<4){
+            // Enemy movement
+            enemyY -= enemySpeed;
+            if (enemyY < 0 ) {
                 enemyY = 550;
                 enemyX = rand() % (windowWidth - 40) + 20;
-                break;
+            }
+
+            // Collision detection
+            for (int i = 0; i < bullets.size(); i++) {
+                if (abs(bullets[i].x - enemyX) < 20 &&
+                    abs(bullets[i].y - enemyY) < 20) {
+
+                    bullets.erase(bullets.begin() + i);
+                    enemyY = 550;
+                    enemyX = rand() % (windowWidth - 40) + 20;
+                    break;
+                }
+            }
+        }
+        if(level==4){}
+        if (level == 5) {
+            // Move enemy
+            enemyX += enemyDX;
+            enemyY += enemyDY;
+
+            // Window bounds (consider boss size)
+            float minX = bossWidth / 2;
+            float maxX = windowWidth - bossWidth / 2;
+
+            float minY = 300 + bossHeight / 2;  // boss stays above y=300
+            float maxY = 600 - bossHeight / 2;  // boss stays below y=600
+
+
+            if (enemyX <= minX || enemyX >= maxX) {
+                enemyDX = (rand() % 5 + 1) * (rand() % 2 ? 1 : -1);
+                // Make sure enemy is inside
+                if (enemyX < minX) enemyX = minX;
+                if (enemyX > maxX) enemyX = maxX;
+            }
+
+            // Bounce & randomize direction on Y bounds
+            if (enemyY <= minY || enemyY >= maxY) {
+                enemyDY = (rand() % 5 + 1) * (rand() % 2 ? 1 : -1);
+                // Make sure enemy is inside
+                if (enemyY < minY) enemyY = minY;
+                if (enemyY > maxY) enemyY = maxY;
+            }
+
+                // Bullet collision
+            for (int i = 0; i < bullets.size(); i++) {
+                if (bullets[i].x >= enemyX - bossWidth / 2 &&
+                        bullets[i].x <= enemyX + bossWidth / 2 &&
+                        bullets[i].y >= enemyY - bossHeight / 2 &&
+                        bullets[i].y <= enemyY + bossHeight / 2)
+                    {
+                        bullets.erase(bullets.begin() + i);
+                        bossHP--;
+
+                        if (bossHP <= 0) {
+                            level++;
+                            enemyX = -1000;
+                            enemyY = -1000;
+                    }
+                        break;
+                }
             }
         }
     }
-
     glutPostRedisplay();
     glutTimerFunc(16, update, 0);
 }
@@ -341,9 +396,37 @@ void glowGreen()  { glColor3f(0.2f, 1.0f, 0.3f); }
 void eyeYellow()  { glColor3f(1.0f, 0.9f, 0.2f); }
 void shadow()     { glColor3f(0.08f, 0.08f, 0.08f); }
 
+void drawBossLifeBar(float x, float y)
+{
+    float barWidth  = 60.0f;
+    float barHeight = 6.0f;
+
+    float hpRatio = (float)bossHP / bossMaxHP;
+    float hpWidth = barWidth * hpRatio;
+
+    // Background (red)
+    glColor3f(0.6, 0.0, 0.0);
+    glBegin(GL_QUADS);
+        glVertex2f(x - barWidth/2, y);
+        glVertex2f(x + barWidth/2, y);
+        glVertex2f(x + barWidth/2, y + barHeight);
+        glVertex2f(x - barWidth/2, y + barHeight);
+    glEnd();
+
+    // HP (green)
+    glColor3f(0.0, 1.0, 0.0);
+    glBegin(GL_QUADS);
+        glVertex2f(x - barWidth/2, y);
+        glVertex2f(x - barWidth/2 + hpWidth, y);
+        glVertex2f(x - barWidth/2 + hpWidth, y + barHeight);
+        glVertex2f(x - barWidth/2, y + barHeight);
+    glEnd();
+}
+
+
 void drawlvl5Enemy()
 {
-    int bx = 400,by =600;
+    int bx = enemyX,by =enemyY;
     //left arm
     glPushMatrix();
     glTranslated(bx, by, 0);   // move to position
@@ -489,7 +572,7 @@ void drawlvl5Enemy()
 }
 
 void drawlvl5Player(){
-    int px = 400,py =200;
+    float px = playerX, py = playerY;
     //left arm
     glPushMatrix();
     glTranslated(px, py, 0);   // move to position
@@ -498,21 +581,20 @@ void drawlvl5Player(){
 
     //top
     metalBlue();
+    glColor3f(0.4f, 0.8f, 1.0f);
     glBegin(GL_TRIANGLES);
         glVertex2f(px,py+13);
         glVertex2f(px,py+22);
         glVertex2f(px+3,py+15);
     glEnd();
     drawCircle(px+2,py+13,3.0);
-    glColor3f(1,0,0);
     drawCircle(px+2,py+4,4.0);
-
     drawCircle(px+8,py+2,4.0);
-    bodyRed();
     drawCircle(px+2,py+7,4.5);
 
     //lid
     glColor3f(1,0,0);
+    glColor3f(0.6f, 0.85f, 1.0f);
     glBegin(GL_QUADS);
         glVertex2f(px+5,py+15);
         glVertex2f(px+13,py+7);
@@ -520,11 +602,12 @@ void drawlvl5Player(){
         glVertex2f(px+5,py+4);
     glEnd();
     bodyRed();
+    glColor3f(0.3f, 0.7f, 1.0f);
     glBegin(GL_QUADS);
         glVertex2f(px+4,py+15);
         glVertex2f(px+10,py+9);
         glVertex2f(px+10,py+4);
-        glVertex2f(px+4,py+9);
+        glVertex2f(px+4,py+4);
     glEnd();
     //bottom cir
     glowGreen();
@@ -613,11 +696,8 @@ void drawlvl5Player(){
         glVertex2f(px-3,py+15);
     glEnd();
     drawCircle(px-2,py+13,3.0);
-    glColor3f(1,0,0);
     drawCircle(px-2,py+4,4.0);
-
     drawCircle(px-8,py+2,4.0);
-    bodyRed();
     drawCircle(px-2,py+7,4.5);
 
     //lid
@@ -633,7 +713,7 @@ void drawlvl5Player(){
         glVertex2f(px-4,py+15);
         glVertex2f(px-10,py+9);
         glVertex2f(px-10,py+4);
-        glVertex2f(px-4,py+9);
+        glVertex2f(px-4,py+4);
     glEnd();
     //bottom cir
     glowGreen();
@@ -716,10 +796,15 @@ void drawlvl5Player(){
 
     glPopMatrix();
 }
+
 void level5() {
     printf("Level 5 Started!\n");
+    drawBullets();
     drawlvl5Enemy();
+    // Life bar above boss head
+    drawBossLifeBar(enemyX, enemyY + 50);
     drawlvl5Player();
+
 }
 // -------------------- Display --------------------
 void display() {
