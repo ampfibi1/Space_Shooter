@@ -24,6 +24,10 @@ int level = 0;
 // -------------------- Player --------------------
 float playerX = 400, playerY = 50;
 float playerSpeed = 10;
+int playerMaxHP = 30;
+int playerHP = 30;
+int playerLives = 3;
+
 
 // -------------------- Bullet --------------------
 struct Bullet {
@@ -37,6 +41,16 @@ struct Star {
 };
 
 std::vector<Star> stars;
+
+//---Coin
+struct Coin {
+    float x, y;
+    float speed;
+};
+std::vector<Coin> coins;
+
+int coinCount = 0;
+int coinTimer = 0;
 
 //--boss bullets
 struct BossBullet {
@@ -125,6 +139,23 @@ void drawMenu() {
 }
 
 
+void drawHUD() {
+    char text[50];
+
+    // Lives (top-left)
+    sprintf(text, "Lives: %d", playerLives);
+    drawText(20, windowHeight - 30, text);
+
+    // Coins (top-right)
+    sprintf(text, "Coins: %d", coinCount);
+    drawText(windowWidth - 150, windowHeight - 30, text);
+
+    // Level (top-center)
+    sprintf(text, "Level: %d", level);
+    drawText(windowWidth / 2 - 40, windowHeight - 30, text);
+}
+
+
 // -------------------- Draw Player ----------------
 void drawPlayer() {
     // -------- Main Body --------
@@ -187,6 +218,25 @@ void drawPlayer() {
 }
 
 
+void damagePlayer(int dmg) {
+    playerHP += dmg;
+
+    if (playerHP >= playerMaxHP) {
+        playerLives--;
+        playerHP = 0;
+
+        printf("Life lost! Remaining lives: %d\n", playerLives);
+
+        // Reset player position
+        playerX = windowWidth / 2;
+        playerY = 50;
+    }
+
+    if (playerLives <= 0) {
+        printf("GAME OVER\n");
+        gameState = 0; // back to menu
+    }
+}
 
 // -------------------- Draw Bullets ---------------
 void drawBullets() {
@@ -292,6 +342,39 @@ void drawBackground() {
 void update(int value) {
 
     if (gameState == 1) { // PLAYING
+        coinTimer++;
+
+        if (coinTimer > 300) { // ~5 seconds (16ms * 300)
+            coins.push_back({
+                (float)(rand() % (windowWidth - 40) + 20),
+                (float)windowHeight + 10,   // start from top
+                2.5f + rand()%3             // falling speed
+            });
+            coinTimer = 0;
+        }
+
+        for (int i = 0; i < coins.size(); i++) {
+
+        // Fall down
+        coins[i].y -= coins[i].speed;
+
+        // Player collision
+        if (abs(coins[i].x - playerX) < 15 &&
+            abs(coins[i].y - playerY) < 15) {
+
+            coinCount++;
+            coins.erase(coins.begin() + i);
+            i--;
+            continue;
+        }
+
+        // Missed coin â†’ remove when out of screen
+        if (coins[i].y < -10) {
+            coins.erase(coins.begin() + i);
+            i--;
+        }
+    }
+
 
         // Player movement
         if (keyLeft && playerX > 20)
@@ -377,6 +460,7 @@ void update(int value) {
                 if (abs(bossBullets[i].x - playerX) < 15 &&
                     abs(bossBullets[i].y - playerY) < 15) {
                     // Handle player hit
+                    damagePlayer(5);
                     printf("Player hit by boss!\n");
                     bossBullets.erase(bossBullets.begin() + i);
                     i--;
@@ -401,6 +485,7 @@ void update(int value) {
                 if(abs(bossBombs[i].x - playerX) < 15 && abs(bossBombs[i].y - playerY) < 15) {
                     bossBombs[i].exploded = true;
                     printf("Player hit by bomb!\n");
+                    damagePlayer(20);
                     // Optional: reduce player life or reset player
                 }
 
@@ -455,6 +540,16 @@ void drawCircle(double cx, double cy, double r, int num_segments = 50) {
         glVertex2d(cx + x, cy + y);
     }
     glEnd();
+}
+
+
+void drawCoins() {
+    for (auto &c : coins) {
+        glColor3f(1.0f, 0.85f, 0.0f);
+        drawCircle(c.x, c.y, 6.0);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        drawCircle(c.x, c.y, 3.0);
+    }
 }
 
 //color plate
@@ -534,7 +629,7 @@ void drawlvl5Enemy()
     //left arm
     glPushMatrix();
     glTranslated(bx, by, 0);   // move to position
-    glScalef(4, 4, 0); // scale ×2
+    glScalef(4, 4, 0); // scale Ã—2
     glTranslated(-bx, -by, 0); // move back
     //ru1
     metalBlue();
@@ -680,7 +775,7 @@ void drawlvl5Player(){
     //left arm
     glPushMatrix();
     glTranslated(px, py, 0);   // move to position
-    glScalef(2, 2, 0); // scale ×2
+    glScalef(2, 2, 0); // scale Ã—2
     glTranslated(-px, -py, 0); // move back
 
     //top
@@ -901,16 +996,48 @@ void drawlvl5Player(){
     glPopMatrix();
 }
 
+
+void drawPlayerLifeBar() {
+    float barWidth = 100;
+    float barHeight = 8;
+    float x = 20;
+    float y = 20;
+
+    float ratio = (float)(playerMaxHP - playerHP) / playerMaxHP;
+
+    // Background
+    glColor3f(0.4f, 0.0f, 0.0f);
+    glBegin(GL_QUADS);
+        glVertex2f(x, y);
+        glVertex2f(x + barWidth, y);
+        glVertex2f(x + barWidth, y + barHeight);
+        glVertex2f(x, y + barHeight);
+    glEnd();
+
+    // HP
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glBegin(GL_QUADS);
+        glVertex2f(x, y);
+        glVertex2f(x + barWidth * ratio, y);
+        glVertex2f(x + barWidth * ratio, y + barHeight);
+        glVertex2f(x, y + barHeight);
+    glEnd();
+}
+
+
 void level5() {
     printf("Level 5 Started!\n");
-    drawBullets();
-    drawBossBullets();
-    drawBossBombs();
     drawlvl5Enemy();
-    // Life bar above boss head
     drawBossLifeBar(enemyX, enemyY + 50);
     drawlvl5Player();
 
+    drawBullets();
+    drawBossBullets();
+    drawBossBombs();
+    drawCoins();
+
+    drawPlayerLifeBar();
+    drawHUD();
 }
 // -------------------- Display --------------------
 void display() {
