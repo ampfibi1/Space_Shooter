@@ -333,16 +333,34 @@ void drawCircle(double cx, double cy, double r, int num_segments = 50) {
     glEnd();
 }
 
+//color plate
+void bodyRed()    { glColor3f(0.65f, 0.1f, 0.1f); }
+void armorDark()  { glColor3f(0.35f, 0.05f, 0.05f); }
+void metalBlue()  { glColor3f(0.1f, 0.2f, 0.6f); }
+void glowGreen()  { glColor3f(0.2f, 1.0f, 0.3f); }
+void eyeYellow()  { glColor3f(1.0f, 0.9f, 0.2f); }
+void shadow()     { glColor3f(0.08f, 0.08f, 0.08f); }
 
 void drawlvl5Enemy()
 {
-    int bx = 400,by =300;
+    int bx = 400,by =600;
     //left arm
     glPushMatrix();
     glTranslated(bx, by, 0);   // move to position
-    glScalef(6, 6, 0); // scale ×2
+    glScalef(4, 4, 0); // scale ×2
     glTranslated(-bx, -by, 0); // move back
-    glColor3f(1,0,0);
+    //ru1
+    metalBlue();
+    glBegin(GL_POLYGON);
+        glVertex2d(bx+15,by-2);
+        glVertex2d(bx+15,by-3);
+        glVertex2d(bx+10,by-10);
+        glVertex2d(bx+7,by-6);
+        glVertex2d(bx+9,by+1);
+        glVertex2d(bx+11,by-1);
+        glVertex2d(bx+15,by-2);
+    glEnd();
+    bodyRed();
     //--la
     glBegin(GL_POLYGON);
         glVertex2d(bx-10,by+1);
@@ -359,29 +377,6 @@ void drawlvl5Enemy()
         glVertex2d(bx-17,by+6);
         glVertex2d(bx-16,by+6);
     glEnd();
-
-    //--ra
-    glBegin(GL_POLYGON);
-        glVertex2d(bx+12,by-11);
-        glVertex2d(bx+12,by-16);
-        glVertex2d(bx+2,by-29);
-        glVertex2d(bx-1,by-30);
-        glVertex2d(bx-4,by-30);
-        glVertex2d(bx-9,by-28);
-        glVertex2d(bx-5,by-31);
-        glVertex2d(bx,by-33);
-        glVertex2d(bx+3,by-33);
-        glVertex2d(bx+20,by-15);
-        glVertex2d(bx+20,by-3);
-        glVertex2d(bx+18.8,by-2);
-        glVertex2d(bx+19,by-1);
-        glVertex2d(bx+18,by);
-        glVertex2d(bx+17,by);
-        glVertex2d(bx+4,by-9);
-        glVertex2d(bx+5,by-10);
-        glVertex2d(bx+6,by-11);
-        glVertex2d(bx+12,by-11);
-    glEnd();
     //-antenna
     glBegin(GL_POLYGON);
         glVertex2d(bx-13,by+15);
@@ -396,15 +391,335 @@ void drawlvl5Enemy()
     glBegin(GL_LINES);
         glVertex2d(bx-13,by+15);
         glVertex2d(bx-18,by+20);
-
     glEnd();
     drawCircle(bx-18, by+20, 1.0);
+
+    //Circle Draw
+    //R1
+    //eye
+    glColor3f(0,0,1);
+    metalBlue();
+    drawCircle(bx-5, by, 4.0);
+    drawCircle(bx-3, by+5, 6.0);
+
+    eyeYellow();
+    drawCircle(bx-3, by+5, 5.0);
+
+    bodyRed();
+    drawCircle(bx-3, by+5, 4.0);
+    glColor3f(0,0,0);
+    drawCircle(bx-3, by+5, 3.0);
+
+    bodyRed();
+    //glowGreen();
+    drawCircle(bx-6, by-5, 4.0);
+    drawCircle(bx-6, by-10, 4.0);
+    drawCircle(bx-1, by-10, 4.0);
+    drawCircle(bx-1, by-4, 4.0);
+    drawCircle(bx+6, by+5,4.5);
+    drawCircle(bx+5, by+2,4.0);
+    drawCircle(bx+3, by+1,4.0);
+    drawCircle(bx+5, by-1,4.0);
+    drawCircle(bx+6, by-2,4.0);
+    drawCircle(bx+3, by-10,2.0);
+    drawCircle(bx+3, by-8,3.0);
+    drawCircle(bx-4, by-14,3.0);
+    drawCircle(bx, by-12,4.0);
+    //ru2
+    bodyRed();
+    glBegin(GL_POLYGON);
+        glVertex2f(bx+7,by-6);
+        glVertex2f(bx+4,by-6);
+        glVertex2f(bx+13,by+3.5);
+        glVertex2f(bx+15,by);
+        glVertex2f(bx+9,by+1);
+        glVertex2f(bx+7,by-6);
+    glEnd();
+    //ru3
+    glBegin(GL_POLYGON);
+        glVertex2f(bx+4,by-6);
+        glVertex2f(bx+14,by+4);
+        glVertex2f(bx+10,by+7);
+        glVertex2f(bx+10,by+5);
+        glVertex2f(bx+9,by+4);
+        glVertex2f(bx+9,by+3);
+        glVertex2f(bx+7,by+2);
+        glVertex2f(bx+7,by+1);
+        glVertex2f(bx+2,by-5);
+        glVertex2f(bx,by-5);
+        glVertex2f(bx+2,by-5);
+        glVertex2f(bx+4,by-6);
+    glEnd();
+
+
+    //RA--
+    //--ra
+    glBegin(GL_POLYGON);
+        glVertex2d(bx+12,by-11);
+        glVertex2d(bx+12,by-16);
+        glVertex2d(bx+20,by-15);
+        glVertex2d(bx+20,by-3);
+        glVertex2d(bx+18.8,by-2);
+        glVertex2d(bx+19,by-1);
+        glVertex2d(bx+18,by);
+        glVertex2d(bx+17,by);
+        glVertex2d(bx+4,by-9);
+        glVertex2d(bx+5,by-10);
+        glVertex2d(bx+6,by-11);
+        glVertex2d(bx+12,by-11);
+    glEnd();
+    glBegin(GL_POLYGON);
+        glVertex2d(bx+12,by-16);
+        glVertex2d(bx,by-29);
+        glVertex2d(bx+3,by-33);
+        glVertex2d(bx+20,by-15);
+        glVertex2d(bx+12,by-16);
+    glEnd();
+    glBegin(GL_POLYGON);
+        glVertex2d(bx+2,by-29);
+        glVertex2d(bx-1,by-30);
+        glVertex2d(bx-4,by-30);
+        glVertex2d(bx-9,by-28);
+        glVertex2d(bx-5,by-31);
+        glVertex2d(bx,by-33);
+        glVertex2d(bx+3,by-33);
+        glVertex2d(bx+2,by-29);
+    glEnd();
+    glPopMatrix();
+}
+
+void drawlvl5Player(){
+    int px = 400,py =200;
+    //left arm
+    glPushMatrix();
+    glTranslated(px, py, 0);   // move to position
+    glScalef(2, 2, 0); // scale ×2
+    glTranslated(-px, -py, 0); // move back
+
+    //top
+    metalBlue();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px,py+13);
+        glVertex2f(px,py+22);
+        glVertex2f(px+3,py+15);
+    glEnd();
+    drawCircle(px+2,py+13,3.0);
+    glColor3f(1,0,0);
+    drawCircle(px+2,py+4,4.0);
+
+    drawCircle(px+8,py+2,4.0);
+    bodyRed();
+    drawCircle(px+2,py+7,4.5);
+
+    //lid
+    glColor3f(1,0,0);
+    glBegin(GL_QUADS);
+        glVertex2f(px+5,py+15);
+        glVertex2f(px+13,py+7);
+        glVertex2f(px+10,py+4);
+        glVertex2f(px+5,py+4);
+    glEnd();
+    bodyRed();
+    glBegin(GL_QUADS);
+        glVertex2f(px+4,py+15);
+        glVertex2f(px+10,py+9);
+        glVertex2f(px+10,py+4);
+        glVertex2f(px+4,py+9);
+    glEnd();
+    //bottom cir
+    glowGreen();
+    drawCircle(px+8,py-3,3.0);
+
+    //lidddd
+    bodyRed();
+    glBegin(GL_POLYGON);
+        glVertex2f(px+10,py+4);
+        glVertex2f(px+10,py-1);
+        glVertex2f(px+11,py-1);
+        glVertex2f(px+13,py+1);
+        glVertex2f(px+14,py+7);
+        glVertex2f(px+13,py+7);
+    glEnd();
+    glBegin(GL_POLYGON);
+        glVertex2f(px+18,py+1);
+        glVertex2f(px+19,py);
+        glVertex2f(px+21,py);
+        glVertex2f(px+14,py+7);
+        glVertex2f(px+13,py+1);
+    glEnd();
+
+    //teeth
+    glBegin(GL_POLYGON);
+        glVertex2f(px+3,py-5);
+        glVertex2f(px+3,py-12);
+        glVertex2f(px+7,py-12);
+        glVertex2f(px+10,py-10);
+        glVertex2f(px+10,py-7);
+        glVertex2f(px+8,py-5);
+        glVertex2f(px+3,py-5);
+    glEnd();
+    glowGreen();
+    glBegin(GL_POLYGON);
+        glVertex2f(px+3,py-11);
+        glVertex2f(px+4,py-10);
+        glVertex2f(px+8,py-10);
+        glVertex2f(px+9,py-11);
+        glVertex2f(px+7,py-12);
+        glVertex2f(px+3,py-12);
+    glEnd();
+    glColor3f(1,1,1);
+    glBegin(GL_POLYGON);
+        glVertex2f(px+5,py-12);
+        glVertex2f(px+5,py-11);
+        glVertex2f(px+6,py-11);
+        glVertex2f(px+7,py-12);
+        glVertex2f(px+7,py-14);
+        glVertex2f(px+6,py-14);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px+7,py-14);
+        glVertex2f(px+6,py-14);
+        glVertex2f(px+6,py-16);
+    glEnd();
+
+    //btmsqr
+    metalBlue();
+    glBegin(GL_QUADS);
+        glVertex2f(px,py-19);
+        glVertex2f(px+3,py-16);
+        glVertex2f(px+3,py-3);
+        glVertex2f(px,py-3);
+    glEnd();
+
+    //mouth
+    drawCircle(px+2,py,4.0);
+    glColor3f(0,0,0);
+    drawCircle(px+4,py,1.0);
+    glColor3f(1,1,1);
+    glBegin(GL_QUADS);
+        glVertex2f(px,py-3);
+        glVertex2f(px+1,py-2);
+        glVertex2f(px+2,py-3);
+        glVertex2f(px+1,py-5);
+    glEnd();
+
+
+    //after mirror
+    //top
+    metalBlue();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px,py+13);
+        glVertex2f(px,py+22);
+        glVertex2f(px-3,py+15);
+    glEnd();
+    drawCircle(px-2,py+13,3.0);
+    glColor3f(1,0,0);
+    drawCircle(px-2,py+4,4.0);
+
+    drawCircle(px-8,py+2,4.0);
+    bodyRed();
+    drawCircle(px-2,py+7,4.5);
+
+    //lid
+    glColor3f(1,0,0);
+    glBegin(GL_QUADS);
+        glVertex2f(px-5,py+15);
+        glVertex2f(px-13,py+7);
+        glVertex2f(px-10,py+4);
+        glVertex2f(px-5,py+4);
+    glEnd();
+    bodyRed();
+    glBegin(GL_QUADS);
+        glVertex2f(px-4,py+15);
+        glVertex2f(px-10,py+9);
+        glVertex2f(px-10,py+4);
+        glVertex2f(px-4,py+9);
+    glEnd();
+    //bottom cir
+    glowGreen();
+    drawCircle(px-8,py-3,3.0);
+
+    //lidddd
+    bodyRed();
+    glBegin(GL_POLYGON);
+        glVertex2f(px-10,py+4);
+        glVertex2f(px-10,py-1);
+        glVertex2f(px-11,py-1);
+        glVertex2f(px-13,py+1);
+        glVertex2f(px-14,py+7);
+        glVertex2f(px-13,py+7);
+    glEnd();
+    glBegin(GL_POLYGON);
+        glVertex2f(px-18,py+1);
+        glVertex2f(px-19,py);
+        glVertex2f(px-21,py);
+        glVertex2f(px-14,py+7);
+        glVertex2f(px-13,py+1);
+    glEnd();
+
+    //teeth
+    glBegin(GL_POLYGON);
+        glVertex2f(px-3,py-5);
+        glVertex2f(px-3,py-12);
+        glVertex2f(px-7,py-12);
+        glVertex2f(px-10,py-10);
+        glVertex2f(px-10,py-7);
+        glVertex2f(px-8,py-5);
+        glVertex2f(px-3,py-5);
+    glEnd();
+    glowGreen();
+    glBegin(GL_POLYGON);
+        glVertex2f(px-3,py-11);
+        glVertex2f(px-4,py-10);
+        glVertex2f(px-8,py-10);
+        glVertex2f(px-9,py-11);
+        glVertex2f(px-7,py-12);
+        glVertex2f(px-3,py-12);
+    glEnd();
+    glColor3f(1,1,1);
+    glBegin(GL_POLYGON);
+        glVertex2f(px-5,py-12);
+        glVertex2f(px-5,py-11);
+        glVertex2f(px-6,py-11);
+        glVertex2f(px-7,py-12);
+        glVertex2f(px-7,py-14);
+        glVertex2f(px-6,py-14);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px-7,py-14);
+        glVertex2f(px-6,py-14);
+        glVertex2f(px-6,py-16);
+    glEnd();
+
+    //btmsqr
+    metalBlue();
+    glBegin(GL_QUADS);
+        glVertex2f(px,py-19);
+        glVertex2f(px-3,py-16);
+        glVertex2f(px-3,py-3);
+        glVertex2f(px,py-3);
+    glEnd();
+
+    //mouth
+    drawCircle(px-2,py,4.0);
+    glColor3f(0,0,0);
+    drawCircle(px-4,py,1.0);
+    glColor3f(1,1,1);
+    glBegin(GL_QUADS);
+        glVertex2f(px,py-3);
+        glVertex2f(px-1,py-2);
+        glVertex2f(px-2,py-3);
+        glVertex2f(px-1,py-5);
+    glEnd();
+
+
 
     glPopMatrix();
 }
 void level5() {
     printf("Level 5 Started!\n");
     drawlvl5Enemy();
+    drawlvl5Player();
 }
 // -------------------- Display --------------------
 void display() {
