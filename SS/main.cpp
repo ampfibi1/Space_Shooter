@@ -38,6 +38,22 @@ struct Star {
 
 std::vector<Star> stars;
 
+//--boss bullets
+struct BossBullet {
+    float x, y;
+    float speedY;
+};
+std::vector<BossBullet> bossBullets;
+int bossFireCooldown = 0; // frames until next shot
+//boss boom
+struct BossBomb {
+    float x, y;
+    float speedY;
+    bool exploded;
+};
+std::vector<BossBomb> bossBombs;
+int bossBombCooldown = 300;
+
 // -------------------- Enemy ---------------------
 float enemyX = 400, enemyY = 550;
 float enemySpeed = 3;
@@ -342,6 +358,59 @@ void update(int value) {
                 if (enemyY > maxY) enemyY = maxY;
             }
 
+            bossFireCooldown--;
+            if (bossFireCooldown <= 0) {
+                // Shoot a bullet from boss center
+                bossBullets.push_back({enemyX, enemyY - 50, -8.0f}); // downward bullet
+                bossFireCooldown = 100; // frames until next shot (~1.6s if update runs every 16ms)
+            }
+
+            // Move boss bullets
+            for (int i = 0; i < bossBullets.size(); i++) {
+                bossBullets[i].y += bossBullets[i].speedY;
+                    if (bossBullets[i].y < 0) {
+                    bossBullets.erase(bossBullets.begin() + i);
+                    i--;
+                }
+
+            // Optional: collision with player
+                if (abs(bossBullets[i].x - playerX) < 15 &&
+                    abs(bossBullets[i].y - playerY) < 15) {
+                    // Handle player hit
+                    printf("Player hit by boss!\n");
+                    bossBullets.erase(bossBullets.begin() + i);
+                    i--;
+                }
+            }
+
+
+            // Boss dropping bombs
+            bossBombCooldown--;
+            if (bossBombCooldown <= 0) {
+                bossBombs.push_back({enemyX, enemyY - 50, -4.0f, false}); // slower than bullets
+                bossBombCooldown = 400 + rand()%100; // randomize cooldown for unpredictability
+            }
+
+            // Move bombs
+            for(int i=0; i<bossBombs.size(); i++) {
+                if(bossBombs[i].exploded) continue;
+
+                bossBombs[i].y += bossBombs[i].speedY;
+
+                // Check collision with player
+                if(abs(bossBombs[i].x - playerX) < 15 && abs(bossBombs[i].y - playerY) < 15) {
+                    bossBombs[i].exploded = true;
+                    printf("Player hit by bomb!\n");
+                    // Optional: reduce player life or reset player
+                }
+
+                // Check if bomb reaches bottom of screen
+                if(bossBombs[i].y <= 0) {
+                    bossBombs[i].exploded = true;
+                }
+            }
+
+
                 // Bullet collision
             for (int i = 0; i < bullets.size(); i++) {
                 if (bullets[i].x >= enemyX - bossWidth / 2 &&
@@ -395,6 +464,41 @@ void metalBlue()  { glColor3f(0.1f, 0.2f, 0.6f); }
 void glowGreen()  { glColor3f(0.2f, 1.0f, 0.3f); }
 void eyeYellow()  { glColor3f(1.0f, 0.9f, 0.2f); }
 void shadow()     { glColor3f(0.08f, 0.08f, 0.08f); }
+void drawBossBullets() {
+    for (auto &b : bossBullets) {
+        glColor3f(1.0f, 0.2f, 0.2f); // red bullet
+        glBegin(GL_QUADS);
+            glVertex2f(b.x - 3, b.y);
+            glVertex2f(b.x + 3, b.y);
+            glVertex2f(b.x + 3, b.y + 10);
+            glVertex2f(b.x - 3, b.y + 10);
+        glEnd();
+    }
+}
+
+void drawBossBombs() {
+    for(auto &b : bossBombs) {
+        if(!b.exploded) {
+            glColor3f(0.8f, 0.5f, 0.0f); // orange bomb
+            drawCircle(b.x, b.y, 5.0);
+        } else {
+            // Draw explosion
+            glColor3f(1.0f, 0.6f, 0.0f); // bright orange
+            drawCircle(b.x, b.y, 12.0);
+            glColor3f(1.0f, 0.2f, 0.0f); // red inner
+            drawCircle(b.x, b.y, 8.0);
+        }
+    }
+
+    // Remove exploded bombs after showing explosion
+    for(int i = 0; i < bossBombs.size(); i++) {
+        if(bossBombs[i].exploded) {
+            bossBombs.erase(bossBombs.begin() + i);
+            i--;
+        }
+    }
+}
+
 
 void drawBossLifeBar(float x, float y)
 {
@@ -800,6 +904,8 @@ void drawlvl5Player(){
 void level5() {
     printf("Level 5 Started!\n");
     drawBullets();
+    drawBossBullets();
+    drawBossBombs();
     drawlvl5Enemy();
     // Life bar above boss head
     drawBossLifeBar(enemyX, enemyY + 50);
