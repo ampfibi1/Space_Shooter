@@ -19,7 +19,7 @@ float gap = 60;
 int gameState = 0;
 
 // -------------------- Level ---------------------
-int level = 1;
+int level = 0;
 
 // -------------------- Player --------------------
 float playerX = 400, playerY = 50;
@@ -30,6 +30,13 @@ struct Bullet {
     float x, y;
 };
 std::vector<Bullet> bullets;
+
+//---star for backgrond
+struct Star {
+    float x, y;
+};
+
+std::vector<Star> stars;
 
 // -------------------- Enemy ---------------------
 float enemyX = 400, enemyY = 550;
@@ -235,6 +242,29 @@ void drawEnemy() {
     glEnd();
 }
 
+//--------background----
+void drawBackground() {
+
+    // -------- Space gradient --------
+    glBegin(GL_QUADS);
+        glColor3f(0.02f, 0.02f, 0.08f); // dark blue bottom
+        glVertex2f(0, 0);
+        glVertex2f(windowWidth, 0);
+
+        glColor3f(0.0f, 0.0f, 0.2f);   // deep space top
+        glVertex2f(windowWidth, windowHeight);
+        glVertex2f(0, windowHeight);
+    glEnd();
+
+    // -------- Stars --------
+    glPointSize(2.0f);
+    glBegin(GL_POINTS);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        for (auto &s : stars) {
+            glVertex2f(s.x, s.y);
+        }
+    glEnd();
+}
 
 // -------------------- Update Game ----------------
 void update(int value) {
@@ -290,19 +320,23 @@ void level5() { printf("Level 5 Started!\n"); }
 void display() {
     glClear(GL_COLOR_BUFFER_BIT);
 
+    drawBackground();
+
     if (gameState == 0) { // MENU
         drawMenu();
     }
-    else if (gameState == 1) { // PLAYING
+    else if (gameState == 1 && level ==1) { // PLAYING
         drawPlayer();
         drawBullets();
         drawEnemy();
     }
-    else if (gameState==4){
+    else if (gameState == 1 && level ==4){
         //lvl
+        level4();
     }
-    else if(gameState==-5){
+    else if(gameState == 1 && level ==5){
         //lvl5
+        level5();
     }
 
     glFlush();
@@ -354,6 +388,15 @@ void init() {
     glClearColor(0, 0, 0, 1);
     glMatrixMode(GL_PROJECTION);
     gluOrtho2D(0, windowWidth, 0, windowHeight);
+
+    // Create stars
+    for (int i = 0; i < 150; i++) {
+        stars.push_back({
+            (float)(rand() % windowWidth),
+            (float)(rand() % windowHeight)
+        });
+    }
+
 }
 
 //----- force the window to original size
