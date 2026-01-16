@@ -12,6 +12,7 @@ float btnHeight = 40;
 float centerX;
 float startY;
 float gap = 60;
+
 // -------------------- Game State ----------------
 // 0 = MENU
 // 1 = PLAYING

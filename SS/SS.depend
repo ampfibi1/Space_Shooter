@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1768513493 source:p:\cg\space_shooter\ss\main.cpp
+1768514599 source:p:\cg\space_shooter\ss\main.cpp
 	<GL/glut.h>
 	<vector>
 	<cstdlib>
