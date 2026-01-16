@@ -18,6 +18,7 @@ float gap = 60;
 // 1 = PLAYING
 int gameState = 0;
 
+
 // -------------------- Level ---------------------
 int level = 1;
 
