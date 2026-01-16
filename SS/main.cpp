@@ -11,6 +11,7 @@ int windowWidth = 800, windowHeight = 600;
 // 1 = PLAYING
 int gameState = 0;
 
+
 // -------------------- Level ---------------------
 int level = 1;
 
