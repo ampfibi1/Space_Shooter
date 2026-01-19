@@ -1052,6 +1052,8 @@ void display() {
         drawPlayer();
         drawBullets();
         drawEnemy();
+
+    drawPlayerLifeBar();
     }
     else if (gameState == 1 && level ==4){
         level4();

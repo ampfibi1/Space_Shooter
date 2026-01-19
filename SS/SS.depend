@@ -8,7 +8,12 @@
 	<cmath>
 	<cstdio>
 
-1768544766 source:c:\cg project\space_shooter\ss\main.cpp
+1768590573 source:c:\cg project\space_shooter\ss\main.cpp
+	<GL/glut.h>
+	<vector>
+	<cstdlib>
+	<cmath>
+	<cstdio>
 
 1762448584 507254f99b1e8799a77b5f546fa7a9ccc9fbd
 	<GL/glut.h>
@@ -28,10 +33,10 @@
 1768544766 D
 	<cstdio>
 
-1761936280 c:\program files\codeblocks\mingw\x86_64-w64-mingw32\include\gl\glut.h
+1762448584 c:\program files\codeblocks\mingw\x86_64-w64-mingw32\include\gl\glut.h
 	"freeglut_std.h"
 
-1761936280 c:\program files\codeblocks\mingw\x86_64-w64-mingw32\include\gl\freeglut_std.h
+1762448584 c:\program files\codeblocks\mingw\x86_64-w64-mingw32\include\gl\freeglut_std.h
 	<windows.h>
 	<EGL/egl.h>
 	<GLES/gl.h>
