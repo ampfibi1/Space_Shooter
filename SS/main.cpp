@@ -52,7 +52,7 @@ struct Coin {
 std::vector<Coin> coins;
 
 // -------------------- Enemy ---------------------
-float enemyX = 400, enemyY = 550;
+float enemyX = 400, enemyY = 500;
 float enemySpeed = 3;
 float enemyDX = 2.5f, enemyDY = 2.0f;
 int bossMaxHP = 200;
@@ -71,8 +71,14 @@ struct BossBullet {
     float x, y;
     float vx, vy;
 };
-
 std::vector<BossBullet> bossBullets;
+
+struct EnemyBullet {
+    float x, y;
+    float speedY;
+};
+std::vector<EnemyBullet> enemyBullets;
+
 
 //------------helper function
 void drawCircle(double cx, double cy, double r, int num_segments = 50) {
@@ -106,7 +112,7 @@ void resetGame(int selectedLevel) {
     playerY = 50;
 
     enemyX = windowWidth / 2;
-    enemyY = 550;
+    enemyY = 500;
 
     level = selectedLevel;
 
@@ -217,63 +223,179 @@ void drawBackground() {
 
 // -------------------- Draw Player ----------------
 void drawlvl1Player() {
-    // -------- Main Body --------
-    glColor3f(0.2f, 0.8f, 0.2f); // dark green
+
+    float px = playerX, py = playerY;
+
+    glPushMatrix();
+
+    glTranslated(px, py, 0);   // move to position
+    glScalef(2.5, 2.5, 0); // scale ×2
+    glTranslated(-px, -py, 0); // move back
+
+    //glColor3f(0.149f, 0.255f, 0.235f);
+
+ glColor3f(0.157f, 0.349f, 0.263f);
+
     glBegin(GL_TRIANGLES);
-        glVertex2f(playerX, playerY + 25);    // nose
-        glVertex2f(playerX - 20, playerY - 20); // bottom-left
-        glVertex2f(playerX + 20, playerY - 20); // bottom-right
+        glVertex2f(px, py + 15);
+        glVertex2f(px , py );
+        glVertex2f(px + 10, py );
+    glEnd();
+//glColor3f(0.149f, 0.255f, 0.235f);
+
+ glColor3f(0.561f, 0.737f, 0.580f);
+     glBegin(GL_TRIANGLES);
+        glVertex2f(px, py + 15);
+        glVertex2f(px , py );
+        glVertex2f(px - 10, py );
     glEnd();
 
-    // -------- Cockpit --------
-    glColor3f(0.0f, 0.5f, 1.0f); // blue
-    glBegin(GL_POLYGON);
-        glVertex2f(playerX - 7, playerY + 5);
-        glVertex2f(playerX + 7, playerY + 5);
-        glVertex2f(playerX + 4, playerY - 5);
-        glVertex2f(playerX - 4, playerY - 5);
+    //back
+   //   glColor3f(0.561f, 0.737f, 0.580f);
+glColor3f(0.149f, 0.255f, 0.235f);
+     glBegin(GL_QUADS);
+        glVertex2f(px, py);
+        glVertex2f(px+5 , py );
+        glVertex2f(px , py-5 );
+        glVertex2f(px+5 , py-10 );
+
+    glEnd();
+ //glColor3f(0.561f, 0.737f, 0.580f);
+glColor3f(0.149f, 0.255f, 0.235f);
+     glBegin(GL_QUADS);
+        glVertex2f(px, py);
+        glVertex2f(px-5 , py );
+        glVertex2f(px , py-5 );
+        glVertex2f(px-5 , py-10 );
+
     glEnd();
 
-    // -------- Left Wing --------
-    glColor3f(0.1f, 0.6f, 0.1f);
-    glBegin(GL_QUADS);
-        glVertex2f(playerX - 20, playerY - 5);
-        glVertex2f(playerX - 35, playerY - 15);
-        glVertex2f(playerX - 30, playerY - 25);
-        glVertex2f(playerX - 15, playerY - 15);
+
+//wings
+
+ //glColor3f(0.561f, 0.737f, 0.580f);
+glColor3f(0.149f, 0.255f, 0.235f);
+     glBegin(GL_QUADS);
+        glVertex2f(px+5, py);
+        glVertex2f(px+10 , py );
+        glVertex2f(px+15 , py-5 );
+        glVertex2f(px+10 , py-5 );
+
     glEnd();
 
-    // -------- Right Wing --------
-    glBegin(GL_QUADS);
-        glVertex2f(playerX + 20, playerY - 5);
-        glVertex2f(playerX + 35, playerY - 15);
-        glVertex2f(playerX + 30, playerY - 25);
-        glVertex2f(playerX + 15, playerY - 15);
+  //  glColor3f(0.561f, 0.737f, 0.580f);
+glColor3f(0.149f, 0.255f, 0.235f);
+     glBegin(GL_QUADS);
+        glVertex2f(px-5, py);
+        glVertex2f(px-10 , py );
+        glVertex2f(px-15 , py-5 );
+        glVertex2f(px-10 , py-5 );
+
     glEnd();
 
-    // -------- Thrusters --------
-    glColor3f(1.0f, 0.5f, 0.0f); // orange flame
+
+  glColor3f(0.149f, 0.255f, 0.235f);
+     glBegin(GL_TRIANGLES);
+        glVertex2f(px, py+5);
+        glVertex2f(px+5 , py );
+        glVertex2f(px , py );
+
+
+    glEnd();
+
+
+
+  glColor3f(0.149f, 0.255f, 0.235f);
+     glBegin(GL_TRIANGLES);
+        glVertex2f(px, py+5);
+        glVertex2f(px-5 , py );
+        glVertex2f(px , py );
+
+
+    glEnd();
+
+
+
+
+    glPopMatrix();
+}
+
+void drawlvl2Player()
+{
+     float px = playerX, py = playerY;
+
+    glPushMatrix();
+
+    glTranslated(px, py, 0);   // move to position
+    glScalef(2.5, 2.5, 0); // scale ×2
+    glTranslated(-px, -py, 0); // move back
+
+    //glColor3f(0.149f, 0.255f, 0.235f);
+glColor3f(0.690f, 0.071f, 0.255f);
+
+
     glBegin(GL_TRIANGLES);
-        glVertex2f(playerX - 7, playerY - 20); // left thruster
-        glVertex2f(playerX + 7, playerY - 20); // right thruster
-        glVertex2f(playerX, playerY - 35);     // tip of flame
+        glVertex2f(px, py + 15);
+        glVertex2f(px , py );
+        glVertex2f(px + 15, py );
     glEnd();
 
-    // -------- Wing details (lines) --------
-    glColor3f(0.0f, 0.0f, 0.0f); // black
-    glBegin(GL_LINES);
-        glVertex2f(playerX - 20, playerY - 5);
-        glVertex2f(playerX - 30, playerY - 25);
+glColor3f(0.690f, 0.071f, 0.255f);
 
-        glVertex2f(playerX + 20, playerY - 5);
-        glVertex2f(playerX + 30, playerY - 25);
 
-        glVertex2f(playerX - 7, playerY + 5);
-        glVertex2f(playerX - 4, playerY - 5);
-
-        glVertex2f(playerX + 7, playerY + 5);
-        glVertex2f(playerX + 4, playerY - 5);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px, py + 15);
+        glVertex2f(px , py );
+        glVertex2f(px - 15, py );
     glEnd();
+
+     glColor3f(0.157f, 0.349f, 0.263f);
+
+    glBegin(GL_QUADS);
+
+        glVertex2f(px , py );
+        glVertex2f(px +10, py );
+        glVertex2f(px +10, py-5 );
+  glVertex2f(px, py -5);
+    glEnd();
+
+glColor3f(0.157f, 0.349f, 0.263f);
+
+    glBegin(GL_QUADS);
+
+        glVertex2f(px , py );
+        glVertex2f(px -10, py );
+        glVertex2f(px -10, py-5 );
+  glVertex2f(px, py -5);
+    glEnd();
+
+
+
+    ////
+    glColor3f(0.988f, 0.004f, 0.004f);
+
+     glBegin(GL_QUADS);
+
+        glVertex2f(px , py-5 );
+        glVertex2f(px +5, py-5 );
+        glVertex2f(px +5, py-10 );
+  glVertex2f(px, py -10);
+    glEnd();
+////
+glColor3f(0.545f, 0.0f, 0.294f);
+
+
+     glBegin(GL_QUADS);
+
+        glVertex2f(px , py-5 );
+        glVertex2f(px -5, py-5 );
+        glVertex2f(px -5, py-10 );
+  glVertex2f(px, py -10);
+    glEnd();
+
+
+    glPopMatrix();
+
 }
 
 void drawlvl4Player(){
@@ -850,57 +972,162 @@ void drawBullets() {
 }
 
 // -------------------- Draw Enemy -----------------
-void drawlvl1Enemy() {
-    // -------- Main Body (red triangle) --------
-    glColor3f(0.8f, 0.0f, 0.0f); // red
+void drawlvl1Enemy()
+{
+        float px = enemyX, py = enemyY ;
+
+    glPushMatrix();
+
+    glTranslated(px, py, 0);   // move to position
+    glScalef(2, 2, 0); // scale ×2
+    glTranslated(-px, -py, 0); // move back
+
+    //glColor3f(0.149f, 0.255f, 0.235f);
+
+glColor3f(0.545f, 0.0f, 0.294f);
+
     glBegin(GL_TRIANGLES);
-        glVertex2f(enemyX, enemyY + 20);    // nose
-        glVertex2f(enemyX - 15, enemyY - 20); // bottom-left
-        glVertex2f(enemyX + 15, enemyY - 20); // bottom-right
+        glVertex2f(px+5, py + 10);
+        glVertex2f(px+5 , py );
+        glVertex2f(px , py );
+    glEnd();
+glColor3f(0.545f, 0.0f, 0.294f);
+
+      glBegin(GL_TRIANGLES);
+        glVertex2f(px-5, py + 10);
+        glVertex2f(px-5 , py );
+        glVertex2f(px , py );
     glEnd();
 
-    // -------- Cockpit / Core (dark red) --------
-    glColor3f(0.5f, 0.0f, 0.0f);
-    glBegin(GL_POLYGON);
-        glVertex2f(enemyX - 5, enemyY + 5);
-        glVertex2f(enemyX + 5, enemyY + 5);
-        glVertex2f(enemyX + 3, enemyY - 5);
-        glVertex2f(enemyX - 3, enemyY - 5);
-    glEnd();
 
-    // -------- Left spike wing --------
-    glColor3f(0.6f, 0.0f, 0.0f);
+
+glColor3f(0.659f, 0.318f, 0.431f);
+
+
     glBegin(GL_TRIANGLES);
-        glVertex2f(enemyX - 15, enemyY - 5);
-        glVertex2f(enemyX - 25, enemyY - 15);
-        glVertex2f(enemyX - 15, enemyY - 15);
+        glVertex2f(px, py +20);
+        glVertex2f(px+5 , py+10 );
+        glVertex2f(px , py );
+    glEnd();
+    //glColor3f(0.545f, 0.0f, 0.294f);
+glColor3f(0.153f, 0.0f, 0.082f);
+
+      glBegin(GL_TRIANGLES);
+        glVertex2f(px, py +20);
+        glVertex2f(px-5 , py+10 );
+        glVertex2f(px , py );
     glEnd();
 
-    // -------- Right spike wing --------
-    glBegin(GL_TRIANGLES);
-        glVertex2f(enemyX + 15, enemyY - 5);
-        glVertex2f(enemyX + 25, enemyY - 15);
-        glVertex2f(enemyX + 15, enemyY - 15);
+  //  glColor3f(0.153f, 0.0f, 0.082f);
+glColor3f(0.498f, 0.090f, 0.204f);
+
+
+      glBegin(GL_POLYGON);
+        glVertex2f(px+5 , py+10 );
+        glVertex2f(px+10 , py+5 );
+        glVertex2f(px+15 , py-10 );
+        glVertex2f(px +10, py-5 );
+        glVertex2f(px+5 , py-5 );
+
     glEnd();
 
-    // -------- Thruster flames (small, dark orange) --------
-    glColor3f(1.0f, 0.3f, 0.0f);
-    glBegin(GL_TRIANGLES);
-        glVertex2f(enemyX - 5, enemyY - 20); // left thruster
-        glVertex2f(enemyX + 5, enemyY - 20); // right thruster
-        glVertex2f(enemyX, enemyY - 30);     // tip
+  //  glColor3f(0.153f, 0.0f, 0.082f);
+glColor3f(0.498f, 0.090f, 0.204f);
+
+
+      glBegin(GL_POLYGON);
+        glVertex2f(px-5 , py+10 );
+        glVertex2f(px-10 , py+5 );
+        glVertex2f(px-15 , py-10 );
+        glVertex2f(px -10, py-5 );
+        glVertex2f(px-5 , py-5 );
+
     glEnd();
 
-    // -------- Aggressive detailing (spikes) --------
-    glColor3f(0.3f, 0.0f, 0.0f);
-    glBegin(GL_LINES);
-        glVertex2f(enemyX - 15, enemyY - 5);
-        glVertex2f(enemyX - 25, enemyY - 15);
 
-        glVertex2f(enemyX + 15, enemyY - 5);
-        glVertex2f(enemyX + 25, enemyY - 15);
-    glEnd();
+
+
+
+   glPopMatrix();
+
 }
+
+void drawlvl2Enemy() {
+
+ float px = enemyX, py = enemyY;
+
+    glPushMatrix();
+
+    glTranslated(px, py, 0);   // move to position
+    glScalef(2, 2, 0); // scale ×2
+    glTranslated(-px, -py, 0); // move back
+
+    //glColor3f(0.149f, 0.255f, 0.235f);
+
+glColor3f(0.0f, 0.427f, 0.467f);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px, py + 20);
+        glVertex2f(px+10 , py );
+        glVertex2f(px , py );
+    glEnd();
+
+glColor3f(0.0f, 0.427f, 0.467f);
+
+
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px, py + 20);
+        glVertex2f(px-10 , py );
+        glVertex2f(px , py );
+    glEnd();
+
+glColor3f(0.369f, 0.392f, 0.447f);
+
+    glBegin(GL_POLYGON);
+       glVertex2f(px, py );
+        glVertex2f(px+10 , py );
+
+        glVertex2f(px+15 , py-10 );
+         glVertex2f(px , py-5 );
+
+    glEnd();
+
+glColor3f(0.369f, 0.392f, 0.447f);
+
+    glBegin(GL_POLYGON);
+       glVertex2f(px, py );
+        glVertex2f(px-10 , py );
+
+        glVertex2f(px-15 , py-10 );
+         glVertex2f(px , py-5 );
+
+        glEnd();
+
+        //////////////
+glColor3f(0.120f, 0.1927f, 0.277f);
+
+    glBegin(GL_QUADS);
+       glVertex2f(px, py );
+        glVertex2f(px+5 , py );
+
+        glVertex2f(px+5 , py+5 );
+         glVertex2f(px , py+5 );
+
+        glEnd();
+
+
+        //////////////
+glColor3f(0.210f, 0.22f, 0.267f);
+
+    glBegin(GL_QUADS);
+       glVertex2f(px, py );
+        glVertex2f(px-5 , py );
+
+        glVertex2f(px-5 , py+5 );
+         glVertex2f(px , py+5 );
+    glEnd();
+    glPopMatrix();
+}
+
 
 void drawlvl4Enemy(){
    float ex = enemyX , ey = enemyY ;
@@ -1201,7 +1428,6 @@ void updateLevel5Timer() {
     }
 }
 
-
 void drawBossLifeBar(float x, float y)
 {
     float barWidth  = 60.0f;
@@ -1336,27 +1562,69 @@ void update(int value) {
             }
         }
 
-        if(level<4){
-            // Enemy movement
-            enemyY -= enemySpeed;
-            if (enemyY < 0 ) {
-                enemyY = 550;
-                enemyX = rand() % (windowWidth - 40) + 20;
-            }
-
+        if(level==1 || level==2){
             // Collision detection
             for (int i = 0; i < bullets.size(); i++) {
                 if (abs(bullets[i].x - enemyX) < 20 &&
-                    abs(bullets[i].y - enemyY) < 20) {
+                    abs(bullets[i].y - enemyY) < 20)
+                    {
 
                     bullets.erase(bullets.begin() + i);
-                    enemyY = 550;
+                        coins.push_back({
+            enemyX,
+            enemyY,
+            2.0f   // falling speed
+        });
+                    enemyY = 450;
+                    enemyX = rand() % (windowWidth - 40) + 20;
+
+                    break;
+                }
+            }
+            for (int i = 0; i < bullets.size(); i++) {
+                if (abs(bullets[i].x - enemyX) < 20 &&
+                    abs(bullets[i].y - enemyY) < 20)
+                {
+                    bullets.erase(bullets.begin() + i);
+                    coins.push_back({enemyX, enemyY, 2.0f});
+                    enemyY = 450;
                     enemyX = rand() % (windowWidth - 40) + 20;
                     break;
                 }
             }
+
+        // Enemy shooting logic for level 2
+        if(level == 2){
+            static int lastEnemyFireTime = 0;
+            int currentTime = glutGet(GLUT_ELAPSED_TIME);
+            int fireDelay = 2000; // fire every 2 seconds
+
+            if(currentTime - lastEnemyFireTime > fireDelay){
+                // Create new enemy bullet
+                enemyBullets.push_back({enemyX, enemyY, -5.0f}); // speedY = -5 (downwards)
+                lastEnemyFireTime = currentTime;
+            }
+        }
+        }
+        if(level == 2){
+            for(int i = 0; i < enemyBullets.size(); i++){
+                enemyBullets[i].y += enemyBullets[i].speedY;
+
+                // Check collision with player
+                if(abs(enemyBullets[i].x - playerX) < 15 &&
+                abs(enemyBullets[i].y - playerY) < 15){
+                    damagePlayer(5); // example damage
+                    enemyBullets.erase(enemyBullets.begin() + i--);
+                    continue;
+                }
+
+                // Remove if off-screen
+                if(enemyBullets[i].y < 0){
+                    enemyBullets.erase(enemyBullets.begin() + i--);
+            }
         }
 
+        }
         if (level == 5 || level==4) {
             // Move enemy
             if (level==5)updateLevel5Timer();
@@ -1477,13 +1745,40 @@ void update(int value) {
 }
 
 //------------levels
+void drawEnemyBullets(){
+    for(auto &b : enemyBullets){
+        glColor3f(1.0f, 0.0f, 0.0f); // red bullets
+        glBegin(GL_QUADS);
+            glVertex2f(b.x-2, b.y);
+            glVertex2f(b.x+2, b.y);
+            glVertex2f(b.x+2, b.y+10);
+            glVertex2f(b.x-2, b.y+10);
+        glEnd();
+    }
+}
+
 void level1() {
     printf("Level 1 Started!\n");
+    drawHUD();
+    drawCoins();
+
     drawlvl1Player();
     drawBullets();
     drawlvl1Enemy();
+    drawPlayerLifeBar();
+    drawHUD();
 }
-void level2() { printf("Level 2 Started!\n"); }
+void level2() {
+    printf("Level 2 Started!\n");
+    drawEnemyBullets();
+    drawHUD();
+    drawCoins();
+    drawBullets();
+    drawlvl2Player();
+    drawlvl2Enemy();
+
+    drawPlayerLifeBar();
+}
 void level3() { printf("Level 3 Started!\n"); }
 
 void level4() {
@@ -1505,10 +1800,10 @@ void level5() {
     printf("Level 5 Started!\n");
     drawlvl5Enemy();
     drawBossLifeBar(enemyX, enemyY + 50);
-    drawlvl5Player();
 
     drawBullets();
     drawBossBullets();
+    drawlvl5Player();
     drawBossBombs();
     drawCoins();
 
@@ -1525,8 +1820,8 @@ void display() {
         drawMenu();
     }else{
         if(level == 1) level1();
-        if(level == 2){}
-        if(level == 3){}
+        if(level == 2) level2();
+        if(level == 3) level3();
         if(level == 4) level4();
         if(level == 5) level5();
     }

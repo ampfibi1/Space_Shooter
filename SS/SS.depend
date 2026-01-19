@@ -1,7 +1,7 @@
 # depslib dependency file v1.0
 2323577307136 
 
-1768854080 source:p:\cg\space_shooter\ss\main.cpp
+1768856038 source:p:\cg\space_shooter\ss\main.cpp
 	<GL/glut.h>
 	<vector>
 	<cstdlib>
@@ -33,10 +33,10 @@
 1768544766 D
 	<cstdio>
 
-1762448584 c:\program files\codeblocks\mingw\x86_64-w64-mingw32\include\gl\glut.h
+1761936280 c:\program files\codeblocks\mingw\x86_64-w64-mingw32\include\gl\glut.h
 	"freeglut_std.h"
 
-1762448584 c:\program files\codeblocks\mingw\x86_64-w64-mingw32\include\gl\freeglut_std.h
+1761936280 c:\program files\codeblocks\mingw\x86_64-w64-mingw32\include\gl\freeglut_std.h
 	<windows.h>
 	<EGL/egl.h>
 	<GLES/gl.h>
