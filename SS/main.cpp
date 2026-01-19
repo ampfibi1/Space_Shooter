@@ -6,30 +6,30 @@
 
 // -------------------- Window --------------------
 int windowWidth = 800, windowHeight = 600;
-//---btnproperty----
 float btnWidth = 100;
 float btnHeight = 40;
 float centerX;
 float startY;
 float gap = 60;
+bool keyLeft = false,keyRight = false;
 
 // -------------------- Game State ----------------
-// 0 = MENU
-// 1 = PLAYING
 int gameState = 0;
-
-// -------------------- Level ---------------------
 int level = 0;
 
 // -------------------- Player --------------------
 float playerX = 400, playerY = 50;
+int playerWidth = 90 , playerHeight = 50 ;
 float playerSpeed = 10;
-int playerMaxHP = 30;
-int playerHP = 30;
-int playerLives = 3;
+int playerMaxHP = 30, playerHP = 30, playerLives = 3;
+const int fireDelay = 150 ; //150 ms wait
+int lastFireTime = 0 ;
 
+// Level 5 Timer (5 minutes = 300 seconds)
+int level5Timer = 300;  // in seconds
+int lastTimerUpdate = 0; // stores last GLUT time for decrement
+bool timerActive = false; // to control timer
 
-// -------------------- Bullet --------------------
 struct Bullet {
     float x, y;
 };
@@ -39,49 +39,67 @@ std::vector<Bullet> bullets;
 struct Star {
     float x, y;
 };
-
 std::vector<Star> stars;
 
 //---Coin
+int coinCount = 0;
+int coinTimer = 0;
+
 struct Coin {
     float x, y;
     float speed;
 };
 std::vector<Coin> coins;
 
-int coinCount = 0;
-int coinTimer = 0;
+// -------------------- Enemy ---------------------
+float enemyX = 400, enemyY = 550;
+float enemySpeed = 3;
+float enemyDX = 2.5f, enemyDY = 2.0f;
+int bossMaxHP = 200;
+int bossHP    = 200;
 
-//--boss bullets
-struct BossBullet {
-    float x, y;
-    float speedY;
-};
-std::vector<BossBullet> bossBullets;
-int bossFireCooldown = 0; // frames until next shot
-//boss boom
+float bossWidth  = 120, bossHeight = 140;
+int bossFireCooldown = 0 , bossBombCooldown = 300;
 struct BossBomb {
     float x, y;
     float speedY;
     bool exploded;
 };
 std::vector<BossBomb> bossBombs;
-int bossBombCooldown = 300;
 
-// -------------------- Enemy ---------------------
-float enemyX = 400, enemyY = 550;
-float enemySpeed = 3;
-float enemyDX = 2.5f;
-float enemyDY = 2.0f;
-int bossMaxHP = 200;
-int bossHP    = 200;
-float bossWidth  = 120;   // sprite width
-float bossHeight = 140;   // sprite height
+struct BossBullet {
+    float x, y;
+    float vx, vy;
+};
 
-// -------------------- Input ---------------------
-bool keyLeft = false;
-bool keyRight = false;
+std::vector<BossBullet> bossBullets;
 
+//------------helper function
+void drawCircle(double cx, double cy, double r, int num_segments = 50) {
+    glBegin(GL_POLYGON);
+    for(int i = 0; i < num_segments; i++) {
+        double theta = 2.0 * 3.1415926 * double(i) / double(num_segments);
+        double x = r * cos(theta); // x offset
+        double y = r * sin(theta); // y offset
+        glVertex2d(cx + x, cy + y);
+    }
+    glEnd();
+}
+
+void drawText(float x, float y, const char* text) {
+    glRasterPos2f(x, y);
+    for (int i = 0; text[i] != '\0'; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, text[i]);
+    }
+}
+
+//color plate
+void bodyRed()    { glColor3f(0.65f, 0.1f, 0.1f); }
+void armorDark()  { glColor3f(0.35f, 0.05f, 0.05f); }
+void metalBlue()  { glColor3f(0.1f, 0.2f, 0.6f); }
+void glowGreen()  { glColor3f(0.2f, 1.0f, 0.3f); }
+void eyeYellow()  { glColor3f(1.0f, 0.9f, 0.2f); }
+void shadow()     { glColor3f(0.08f, 0.08f, 0.08f); }
 // -------------------- Reset Game ----------------
 void resetGame(int selectedLevel) {
     playerX = windowWidth / 2;
@@ -92,19 +110,31 @@ void resetGame(int selectedLevel) {
 
     level = selectedLevel;
 
-    // Increase difficulty per level
-    enemySpeed = 2 + level;
+    bossMaxHP = (level==4?100:200) ;
+    bossHP    = (level==4?100:200) ;
+    playerMaxHP = (level==4?50:30) ;
+    playerHP = (level==4?50:30) ;
+    playerLives = (level==4?3:2) ;
 
     bullets.clear();
-    gameState = 1; // PLAYING
+
+    if(level == 5){
+        level5Timer = 300; // reset timer
+        lastTimerUpdate = glutGet(GLUT_ELAPSED_TIME);
+        timerActive = true;
+    } else {
+        timerActive = false;
+    }
+
+    gameState = 1; // PLAYIN
 }
 
-
-// -------------------- Draw Text -----------------
-void drawText(float x, float y, const char* text) {
-    glRasterPos2f(x, y);
-    for (int i = 0; text[i] != '\0'; i++) {
-        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, text[i]);
+void drawCoins() {
+    for (auto &c : coins) {
+        glColor3f(1.0f, 0.85f, 0.0f);
+        drawCircle(c.x, c.y, 6.0);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        drawCircle(c.x, c.y, 3.0);
     }
 }
 
@@ -138,7 +168,6 @@ void drawMenu() {
     }
 }
 
-
 void drawHUD() {
     char text[50];
 
@@ -153,11 +182,41 @@ void drawHUD() {
     // Level (top-center)
     sprintf(text, "Level: %d", level);
     drawText(windowWidth / 2 - 40, windowHeight - 30, text);
+
+    if(level == 5 && timerActive) {
+        int minutes = level5Timer / 60;
+        int seconds = level5Timer % 60;
+        char timeText[20];
+        sprintf(timeText, "Time: %02d:%02d", minutes, seconds);
+        drawText(windowWidth / 2 - 40, windowHeight - 50, timeText);
+    }
+
 }
 
+//--------background----
+void drawBackground() {
+    glBegin(GL_QUADS);
+        glColor3f(0.02f, 0.02f, 0.08f); // dark blue bottom
+        glVertex2f(0, 0);
+        glVertex2f(windowWidth, 0);
+
+        glColor3f(0.0f, 0.0f, 0.2f);   // deep space top
+        glVertex2f(windowWidth, windowHeight);
+        glVertex2f(0, windowHeight);
+    glEnd();
+
+    // -------- Stars --------
+    glPointSize(2.0f);
+    glBegin(GL_POINTS);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        for (auto &s : stars) {
+            glVertex2f(s.x, s.y);
+        }
+    glEnd();
+}
 
 // -------------------- Draw Player ----------------
-void drawPlayer() {
+void drawlvl1Player() {
     // -------- Main Body --------
     glColor3f(0.2f, 0.8f, 0.2f); // dark green
     glBegin(GL_TRIANGLES);
@@ -217,565 +276,12 @@ void drawPlayer() {
     glEnd();
 }
 
-
-void damagePlayer(int dmg) {
-    playerHP += dmg;
-
-    if (playerHP >= playerMaxHP) {
-        playerLives--;
-        playerHP = 0;
-
-        printf("Life lost! Remaining lives: %d\n", playerLives);
-
-        // Reset player position
-        playerX = windowWidth / 2;
-        playerY = 50;
-    }
-
-    if (playerLives <= 0) {
-        printf("GAME OVER\n");
-        gameState = 0; // back to menu
-    }
-}
-
-// -------------------- Draw Bullets ---------------
-void drawBullets() {
-    for (auto &b : bullets) {
-        // Main laser body (yellow)
-        glColor3f(1.0f, 1.0f, 0.0f);
-        glBegin(GL_QUADS);
-            glVertex2f(b.x - 2, b.y);      // bottom-left
-            glVertex2f(b.x + 2, b.y);      // bottom-right
-            glVertex2f(b.x + 2, b.y + 10); // top-right
-            glVertex2f(b.x - 2, b.y + 10); // top-left
-        glEnd();
-
-        // Laser tip (bright white)
-        glColor3f(1.0f, 1.0f, 1.0f);
-        glBegin(GL_TRIANGLES);
-            glVertex2f(b.x - 2, b.y + 10); // left base of tip
-            glVertex2f(b.x + 2, b.y + 10); // right base of tip
-            glVertex2f(b.x, b.y + 15);     // tip point
-        glEnd();
-    }
-}
-
-
-// -------------------- Draw Enemy -----------------
-void drawEnemy() {
-    // -------- Main Body (red triangle) --------
-    glColor3f(0.8f, 0.0f, 0.0f); // red
-    glBegin(GL_TRIANGLES);
-        glVertex2f(enemyX, enemyY + 20);    // nose
-        glVertex2f(enemyX - 15, enemyY - 20); // bottom-left
-        glVertex2f(enemyX + 15, enemyY - 20); // bottom-right
-    glEnd();
-
-    // -------- Cockpit / Core (dark red) --------
-    glColor3f(0.5f, 0.0f, 0.0f);
-    glBegin(GL_POLYGON);
-        glVertex2f(enemyX - 5, enemyY + 5);
-        glVertex2f(enemyX + 5, enemyY + 5);
-        glVertex2f(enemyX + 3, enemyY - 5);
-        glVertex2f(enemyX - 3, enemyY - 5);
-    glEnd();
-
-    // -------- Left spike wing --------
-    glColor3f(0.6f, 0.0f, 0.0f);
-    glBegin(GL_TRIANGLES);
-        glVertex2f(enemyX - 15, enemyY - 5);
-        glVertex2f(enemyX - 25, enemyY - 15);
-        glVertex2f(enemyX - 15, enemyY - 15);
-    glEnd();
-
-    // -------- Right spike wing --------
-    glBegin(GL_TRIANGLES);
-        glVertex2f(enemyX + 15, enemyY - 5);
-        glVertex2f(enemyX + 25, enemyY - 15);
-        glVertex2f(enemyX + 15, enemyY - 15);
-    glEnd();
-
-    // -------- Thruster flames (small, dark orange) --------
-    glColor3f(1.0f, 0.3f, 0.0f);
-    glBegin(GL_TRIANGLES);
-        glVertex2f(enemyX - 5, enemyY - 20); // left thruster
-        glVertex2f(enemyX + 5, enemyY - 20); // right thruster
-        glVertex2f(enemyX, enemyY - 30);     // tip
-    glEnd();
-
-    // -------- Aggressive detailing (spikes) --------
-    glColor3f(0.3f, 0.0f, 0.0f);
-    glBegin(GL_LINES);
-        glVertex2f(enemyX - 15, enemyY - 5);
-        glVertex2f(enemyX - 25, enemyY - 15);
-
-        glVertex2f(enemyX + 15, enemyY - 5);
-        glVertex2f(enemyX + 25, enemyY - 15);
-    glEnd();
-}
-
-//--------background----
-void drawBackground() {
-
-    // -------- Space gradient --------
-    glBegin(GL_QUADS);
-        glColor3f(0.02f, 0.02f, 0.08f); // dark blue bottom
-        glVertex2f(0, 0);
-        glVertex2f(windowWidth, 0);
-
-        glColor3f(0.0f, 0.0f, 0.2f);   // deep space top
-        glVertex2f(windowWidth, windowHeight);
-        glVertex2f(0, windowHeight);
-    glEnd();
-
-    // -------- Stars --------
-    glPointSize(2.0f);
-    glBegin(GL_POINTS);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        for (auto &s : stars) {
-            glVertex2f(s.x, s.y);
-        }
-    glEnd();
-}
-
-// -------------------- Update Game ----------------
-void update(int value) {
-
-    if (gameState == 1) { // PLAYING
-        coinTimer++;
-
-        if (coinTimer > 300) { // ~5 seconds (16ms * 300)
-            coins.push_back({
-                (float)(rand() % (windowWidth - 40) + 20),
-                (float)windowHeight + 10,   // start from top
-                2.5f + rand()%3             // falling speed
-            });
-            coinTimer = 0;
-        }
-
-        for (int i = 0; i < coins.size(); i++) {
-
-        // Fall down
-        coins[i].y -= coins[i].speed;
-
-        // Player collision
-        if (abs(coins[i].x - playerX) < 15 &&
-            abs(coins[i].y - playerY) < 15) {
-
-            coinCount++;
-            coins.erase(coins.begin() + i);
-            i--;
-            continue;
-        }
-
-        // Missed coin → remove when out of screen
-        if (coins[i].y < -10) {
-            coins.erase(coins.begin() + i);
-            i--;
-        }
-    }
-
-
-        // Player movement
-        if (keyLeft && playerX > 20)
-            playerX -= playerSpeed;
-
-        if (keyRight && playerX < windowWidth - 20)
-            playerX += playerSpeed;
-
-        // Bullet movement
-        for (int i = 0; i < bullets.size(); i++) {
-            bullets[i].y += 10;
-            if (bullets[i].y > windowHeight) {
-                bullets.erase(bullets.begin() + i);
-                i--;
-            }
-        }
-
-        if(level<4){
-            // Enemy movement
-            enemyY -= enemySpeed;
-            if (enemyY < 0 ) {
-                enemyY = 550;
-                enemyX = rand() % (windowWidth - 40) + 20;
-            }
-
-            // Collision detection
-            for (int i = 0; i < bullets.size(); i++) {
-                if (abs(bullets[i].x - enemyX) < 20 &&
-                    abs(bullets[i].y - enemyY) < 20) {
-
-                    bullets.erase(bullets.begin() + i);
-                    enemyY = 550;
-                    enemyX = rand() % (windowWidth - 40) + 20;
-                    break;
-                }
-            }
-        }
-        if(level==4){}
-        if (level == 5) {
-            // Move enemy
-            enemyX += enemyDX;
-            enemyY += enemyDY;
-
-            // Window bounds (consider boss size)
-            float minX = bossWidth / 2;
-            float maxX = windowWidth - bossWidth / 2;
-
-            float minY = 300 + bossHeight / 2;  // boss stays above y=300
-            float maxY = 600 - bossHeight / 2;  // boss stays below y=600
-
-
-            if (enemyX <= minX || enemyX >= maxX) {
-                enemyDX = (rand() % 5 + 1) * (rand() % 2 ? 1 : -1);
-                // Make sure enemy is inside
-                if (enemyX < minX) enemyX = minX;
-                if (enemyX > maxX) enemyX = maxX;
-            }
-
-            // Bounce & randomize direction on Y bounds
-            if (enemyY <= minY || enemyY >= maxY) {
-                enemyDY = (rand() % 5 + 1) * (rand() % 2 ? 1 : -1);
-                // Make sure enemy is inside
-                if (enemyY < minY) enemyY = minY;
-                if (enemyY > maxY) enemyY = maxY;
-            }
-
-            bossFireCooldown--;
-            if (bossFireCooldown <= 0) {
-                // Shoot a bullet from boss center
-                bossBullets.push_back({enemyX, enemyY - 50, -8.0f}); // downward bullet
-                bossFireCooldown = 100; // frames until next shot (~1.6s if update runs every 16ms)
-            }
-
-            // Move boss bullets
-            for (int i = 0; i < bossBullets.size(); i++) {
-                bossBullets[i].y += bossBullets[i].speedY;
-                    if (bossBullets[i].y < 0) {
-                    bossBullets.erase(bossBullets.begin() + i);
-                    i--;
-                }
-
-            // Optional: collision with player
-                if (abs(bossBullets[i].x - playerX) < 15 &&
-                    abs(bossBullets[i].y - playerY) < 15) {
-                    // Handle player hit
-                    damagePlayer(5);
-                    printf("Player hit by boss!\n");
-                    bossBullets.erase(bossBullets.begin() + i);
-                    i--;
-                }
-            }
-
-
-            // Boss dropping bombs
-            bossBombCooldown--;
-            if (bossBombCooldown <= 0) {
-                bossBombs.push_back({enemyX, enemyY - 50, -4.0f, false}); // slower than bullets
-                bossBombCooldown = 400 + rand()%100; // randomize cooldown for unpredictability
-            }
-
-            // Move bombs
-            for(int i=0; i<bossBombs.size(); i++) {
-                if(bossBombs[i].exploded) continue;
-
-                bossBombs[i].y += bossBombs[i].speedY;
-
-                // Check collision with player
-                if(abs(bossBombs[i].x - playerX) < 15 && abs(bossBombs[i].y - playerY) < 15) {
-                    bossBombs[i].exploded = true;
-                    printf("Player hit by bomb!\n");
-                    damagePlayer(20);
-                    // Optional: reduce player life or reset player
-                }
-
-                // Check if bomb reaches bottom of screen
-                if(bossBombs[i].y <= 0) {
-                    bossBombs[i].exploded = true;
-                }
-            }
-
-
-                // Bullet collision
-            for (int i = 0; i < bullets.size(); i++) {
-                if (bullets[i].x >= enemyX - bossWidth / 2 &&
-                        bullets[i].x <= enemyX + bossWidth / 2 &&
-                        bullets[i].y >= enemyY - bossHeight / 2 &&
-                        bullets[i].y <= enemyY + bossHeight / 2)
-                    {
-                        bullets.erase(bullets.begin() + i);
-                        bossHP--;
-
-                        if (bossHP <= 0) {
-                            level++;
-                            enemyX = -1000;
-                            enemyY = -1000;
-                    }
-                        break;
-                }
-            }
-        }
-    }
-    glutPostRedisplay();
-    glutTimerFunc(16, update, 0);
-}
-//----------------------lvl---
-void level1() { printf("Level 1 Started!\n"); }
-void level2() { printf("Level 2 Started!\n"); }
-void level3() { printf("Level 3 Started!\n"); }
-//-----------------lvl-4-----------------------
-void drawlvl4Enemy(){
-
-}
-void level4() {
-     printf("Level 4 Started!\n");
-}
-//-----------------lvl-5-----------------------
-void drawCircle(double cx, double cy, double r, int num_segments = 50) {
-    glBegin(GL_POLYGON); // or GL_LINE_LOOP if you want just the outline
-    for(int i = 0; i < num_segments; i++) {
-        double theta = 2.0 * 3.1415926 * double(i) / double(num_segments); // angle
-        double x = r * cos(theta); // x offset
-        double y = r * sin(theta); // y offset
-        glVertex2d(cx + x, cy + y);
-    }
-    glEnd();
-}
-
-
-void drawCoins() {
-    for (auto &c : coins) {
-        glColor3f(1.0f, 0.85f, 0.0f);
-        drawCircle(c.x, c.y, 6.0);
-        glColor3f(1.0f, 1.0f, 1.0f);
-        drawCircle(c.x, c.y, 3.0);
-    }
-}
-
-//color plate
-void bodyRed()    { glColor3f(0.65f, 0.1f, 0.1f); }
-void armorDark()  { glColor3f(0.35f, 0.05f, 0.05f); }
-void metalBlue()  { glColor3f(0.1f, 0.2f, 0.6f); }
-void glowGreen()  { glColor3f(0.2f, 1.0f, 0.3f); }
-void eyeYellow()  { glColor3f(1.0f, 0.9f, 0.2f); }
-void shadow()     { glColor3f(0.08f, 0.08f, 0.08f); }
-void drawBossBullets() {
-    for (auto &b : bossBullets) {
-        glColor3f(1.0f, 0.2f, 0.2f); // red bullet
-        glBegin(GL_QUADS);
-            glVertex2f(b.x - 3, b.y);
-            glVertex2f(b.x + 3, b.y);
-            glVertex2f(b.x + 3, b.y + 10);
-            glVertex2f(b.x - 3, b.y + 10);
-        glEnd();
-    }
-}
-
-void drawBossBombs() {
-    for(auto &b : bossBombs) {
-        if(!b.exploded) {
-            glColor3f(0.8f, 0.5f, 0.0f); // orange bomb
-            drawCircle(b.x, b.y, 5.0);
-        } else {
-            // Draw explosion
-            glColor3f(1.0f, 0.6f, 0.0f); // bright orange
-            drawCircle(b.x, b.y, 12.0);
-            glColor3f(1.0f, 0.2f, 0.0f); // red inner
-            drawCircle(b.x, b.y, 8.0);
-        }
-    }
-
-    // Remove exploded bombs after showing explosion
-    for(int i = 0; i < bossBombs.size(); i++) {
-        if(bossBombs[i].exploded) {
-            bossBombs.erase(bossBombs.begin() + i);
-            i--;
-        }
-    }
-}
-
-
-void drawBossLifeBar(float x, float y)
-{
-    float barWidth  = 60.0f;
-    float barHeight = 6.0f;
-
-    float hpRatio = (float)bossHP / bossMaxHP;
-    float hpWidth = barWidth * hpRatio;
-
-    // Background (red)
-    glColor3f(0.6, 0.0, 0.0);
-    glBegin(GL_QUADS);
-        glVertex2f(x - barWidth/2, y);
-        glVertex2f(x + barWidth/2, y);
-        glVertex2f(x + barWidth/2, y + barHeight);
-        glVertex2f(x - barWidth/2, y + barHeight);
-    glEnd();
-
-    // HP (green)
-    glColor3f(0.0, 1.0, 0.0);
-    glBegin(GL_QUADS);
-        glVertex2f(x - barWidth/2, y);
-        glVertex2f(x - barWidth/2 + hpWidth, y);
-        glVertex2f(x - barWidth/2 + hpWidth, y + barHeight);
-        glVertex2f(x - barWidth/2, y + barHeight);
-    glEnd();
-}
-
-
-void drawlvl5Enemy()
-{
-    int bx = enemyX,by =enemyY;
-    //left arm
-    glPushMatrix();
-    glTranslated(bx, by, 0);   // move to position
-    glScalef(4, 4, 0); // scale ×2
-    glTranslated(-bx, -by, 0); // move back
-    //ru1
-    metalBlue();
-    glBegin(GL_POLYGON);
-        glVertex2d(bx+15,by-2);
-        glVertex2d(bx+15,by-3);
-        glVertex2d(bx+10,by-10);
-        glVertex2d(bx+7,by-6);
-        glVertex2d(bx+9,by+1);
-        glVertex2d(bx+11,by-1);
-        glVertex2d(bx+15,by-2);
-    glEnd();
-    bodyRed();
-    //--la
-    glBegin(GL_POLYGON);
-        glVertex2d(bx-10,by+1);
-        glVertex2d(bx-8.5,by+2);
-        glVertex2d(bx-6,by-2);
-        glVertex2d(bx-11,by-5);
-        glVertex2d(bx-14,by-5);
-        glVertex2d(bx-16,by-4);
-        glVertex2d(bx-21,by);
-        glVertex2d(bx-21,by+3);
-        glVertex2d(bx-23,by+4);
-        glVertex2d(bx-20,by+8);
-        glVertex2d(bx-19,by+7);
-        glVertex2d(bx-17,by+6);
-        glVertex2d(bx-16,by+6);
-    glEnd();
-    //-antenna
-    glBegin(GL_POLYGON);
-        glVertex2d(bx-13,by+15);
-        glVertex2d(bx-12,by+16);
-        glVertex2d(bx-10,by+16);
-        glVertex2d(bx-4,by+11);
-        glVertex2d(bx-8,by+5);
-        glVertex2d(bx-12,by+10);
-        glVertex2d(bx-13,by+13);
-        glVertex2d(bx-13,by+15);
-    glEnd();
-    glBegin(GL_LINES);
-        glVertex2d(bx-13,by+15);
-        glVertex2d(bx-18,by+20);
-    glEnd();
-    drawCircle(bx-18, by+20, 1.0);
-
-    //Circle Draw
-    //R1
-    //eye
-    glColor3f(0,0,1);
-    metalBlue();
-    drawCircle(bx-5, by, 4.0);
-    drawCircle(bx-3, by+5, 6.0);
-
-    eyeYellow();
-    drawCircle(bx-3, by+5, 5.0);
-
-    bodyRed();
-    drawCircle(bx-3, by+5, 4.0);
-    glColor3f(0,0,0);
-    drawCircle(bx-3, by+5, 3.0);
-
-    bodyRed();
-    //glowGreen();
-    drawCircle(bx-6, by-5, 4.0);
-    drawCircle(bx-6, by-10, 4.0);
-    drawCircle(bx-1, by-10, 4.0);
-    drawCircle(bx-1, by-4, 4.0);
-    drawCircle(bx+6, by+5,4.5);
-    drawCircle(bx+5, by+2,4.0);
-    drawCircle(bx+3, by+1,4.0);
-    drawCircle(bx+5, by-1,4.0);
-    drawCircle(bx+6, by-2,4.0);
-    drawCircle(bx+3, by-10,2.0);
-    drawCircle(bx+3, by-8,3.0);
-    drawCircle(bx-4, by-14,3.0);
-    drawCircle(bx, by-12,4.0);
-    //ru2
-    bodyRed();
-    glBegin(GL_POLYGON);
-        glVertex2f(bx+7,by-6);
-        glVertex2f(bx+4,by-6);
-        glVertex2f(bx+13,by+3.5);
-        glVertex2f(bx+15,by);
-        glVertex2f(bx+9,by+1);
-        glVertex2f(bx+7,by-6);
-    glEnd();
-    //ru3
-    glBegin(GL_POLYGON);
-        glVertex2f(bx+4,by-6);
-        glVertex2f(bx+14,by+4);
-        glVertex2f(bx+10,by+7);
-        glVertex2f(bx+10,by+5);
-        glVertex2f(bx+9,by+4);
-        glVertex2f(bx+9,by+3);
-        glVertex2f(bx+7,by+2);
-        glVertex2f(bx+7,by+1);
-        glVertex2f(bx+2,by-5);
-        glVertex2f(bx,by-5);
-        glVertex2f(bx+2,by-5);
-        glVertex2f(bx+4,by-6);
-    glEnd();
-
-
-    //RA--
-    //--ra
-    glBegin(GL_POLYGON);
-        glVertex2d(bx+12,by-11);
-        glVertex2d(bx+12,by-16);
-        glVertex2d(bx+20,by-15);
-        glVertex2d(bx+20,by-3);
-        glVertex2d(bx+18.8,by-2);
-        glVertex2d(bx+19,by-1);
-        glVertex2d(bx+18,by);
-        glVertex2d(bx+17,by);
-        glVertex2d(bx+4,by-9);
-        glVertex2d(bx+5,by-10);
-        glVertex2d(bx+6,by-11);
-        glVertex2d(bx+12,by-11);
-    glEnd();
-    glBegin(GL_POLYGON);
-        glVertex2d(bx+12,by-16);
-        glVertex2d(bx,by-29);
-        glVertex2d(bx+3,by-33);
-        glVertex2d(bx+20,by-15);
-        glVertex2d(bx+12,by-16);
-    glEnd();
-    glBegin(GL_POLYGON);
-        glVertex2d(bx+2,by-29);
-        glVertex2d(bx-1,by-30);
-        glVertex2d(bx-4,by-30);
-        glVertex2d(bx-9,by-28);
-        glVertex2d(bx-5,by-31);
-        glVertex2d(bx,by-33);
-        glVertex2d(bx+3,by-33);
-        glVertex2d(bx+2,by-29);
-    glEnd();
-    glPopMatrix();
-}
-
-void drawlvl5Player(){
+void drawlvl4Player(){
     float px = playerX, py = playerY;
     //left arm
     glPushMatrix();
     glTranslated(px, py, 0);   // move to position
-    glScalef(2, 2, 0); // scale ×2
+    glScalef(2.7, 2.7, 0); // scale ×2
     glTranslated(-px, -py, 0); // move back
 
     //top
@@ -996,17 +502,314 @@ void drawlvl5Player(){
     glPopMatrix();
 }
 
+void drawlvl5Player(){
+    float px = playerX , py = playerY ;
 
-void drawPlayerLifeBar() {
-    float barWidth = 100;
-    float barHeight = 8;
-    float x = 20;
-    float y = 20;
+    glPushMatrix();
+    glTranslated(px, py, 0);
+    glScalef(4, 4, 0);
+    glTranslated(-px, -py, 0);
 
-    float ratio = (float)(playerMaxHP - playerHP) / playerMaxHP;
+    glColor3f(1,1,1);
+    glColor3f(107/255.0f, 120/255.0f, 78/255.0f);
 
-    // Background
-    glColor3f(0.4f, 0.0f, 0.0f);
+    glBegin(GL_POLYGON);
+        glVertex2f(px,py+13);
+        glVertex2f(px-30,py-6);
+        glVertex2f(px-28,py-9);
+        glVertex2f(px-15,py-2);
+        glVertex2f(px-8,py-8);
+        glVertex2f(px-5,py-5);
+        glVertex2f(px,py-10);
+    glEnd();
+
+    glColor3f(0,0,0);
+    //glColor3f(60/255.0f, 60/255.0f, 60/255.0f);
+
+    glBegin(GL_LINES);
+        glVertex2f(px,py+12.2);
+        glVertex2f(px-29,py-6);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-29,py-6);
+        glVertex2f(px-27.5,py-8);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-27.5,py-8);
+        glVertex2f(px-15,py-1);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-15,py-1);
+        glVertex2f(px-8,py-7);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-8,py-7);
+        glVertex2f(px-5,py-4);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-5,py-4);
+        glVertex2f(px,py-9);
+    glEnd();
+
+
+    glBegin(GL_LINES);
+        glVertex2f(px,py-6);
+        glVertex2f(px-2,py-6);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-2,py-6);
+        glVertex2f(px-3,py-7);
+    glEnd();
+
+
+    glBegin(GL_LINES);
+        glVertex2f(px-3,py-6);
+        glVertex2f(px-3,py+2);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-7,py-6);
+        glVertex2f(px-7,py+2);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-7,py-3);
+        glVertex2f(px-5,py-2);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-5,py-2);
+        glVertex2f(px-3,py-3);
+    glEnd();
+
+
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px-7,py+2);
+        glVertex2f(px-7,py+3);
+        glVertex2f(px-5,py+2);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px-5,py+2);
+        glVertex2f(px-3,py+2);
+        glVertex2f(px-3,py+3);
+    glEnd();
+
+    glBegin(GL_QUADS);
+        glVertex2f(px-1,py+7);
+
+        glVertex2f(px-1,py+10);
+        glVertex2f(px-2,py+9);
+        glVertex2f(px-3,py+7);
+    glEnd();
+
+    glBegin(GL_LINES);
+        glVertex2f(px-3,py+3);
+        glVertex2f(px-7,py+3);
+    glEnd();
+
+    glBegin(GL_LINES);
+        glVertex2f(px-1,py+10);
+        glVertex2f(px,py+11);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-3,py+7);
+        glVertex2f(px-3,py+2);
+    glEnd();
+
+    glBegin(GL_LINES);
+        glVertex2f(px-12,py+5);
+        glVertex2f(px-10,py+3);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-10,py+3);
+        glVertex2f(px-10,py-2);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-10,py-2);
+        glVertex2f(px-11,py-3);
+    glEnd();
+
+    glBegin(GL_LINES);
+        glVertex2f(px-9,py-5);
+        glVertex2f(px-16,py+1);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-14,py+2.1);
+        glVertex2f(px-27,py-6);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px-27,py-6);
+        glVertex2f(px-27.5,py-5.2);
+    glEnd();
+
+    glColor3f(1,1,1);
+    glColor3f(107/255.0f, 120/255.0f, 78/255.0f);
+
+    glBegin(GL_POLYGON);
+        glVertex2f(px,py+13);
+        glVertex2f(px+30,py-6);
+        glVertex2f(px+28,py-9);
+        glVertex2f(px+15,py-2);
+        glVertex2f(px+8,py-8);
+        glVertex2f(px+5,py-5);
+        glVertex2f(px,py-10);
+    glEnd();
+
+    glColor3f(0,0,0);
+
+    glBegin(GL_LINES);
+        glVertex2f(px,py+12.2);
+        glVertex2f(px+29,py-6);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+29,py-6);
+        glVertex2f(px+27.5,py-8);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+27.5,py-8);
+        glVertex2f(px+15,py-1);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+15,py-1);
+        glVertex2f(px+8,py-7);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+8,py-7);
+        glVertex2f(px+5,py-4);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+5,py-4);
+        glVertex2f(px,py-9);
+    glEnd();
+
+
+    glBegin(GL_LINES);
+        glVertex2f(px,py-6);
+        glVertex2f(px+2,py-6);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+2,py-6);
+        glVertex2f(px+3,py-7);
+    glEnd();
+
+
+    glBegin(GL_LINES);
+        glVertex2f(px+3,py-6);
+        glVertex2f(px+3,py+2);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+7,py-6);
+        glVertex2f(px+7,py+2);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+7,py-3);
+        glVertex2f(px+5,py-2);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+5,py-2);
+        glVertex2f(px+3,py-3);
+    glEnd();
+
+
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px+7,py+2);
+        glVertex2f(px+7,py+3);
+        glVertex2f(px+5,py+2);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(px+5,py+2);
+        glVertex2f(px+3,py+2);
+        glVertex2f(px+3,py+3);
+    glEnd();
+
+    glBegin(GL_QUADS);
+        glVertex2f(px+1,py+7);
+
+        glVertex2f(px+1,py+10);
+        glVertex2f(px+2,py+9);
+        glVertex2f(px+3,py+7);
+    glEnd();
+
+    glBegin(GL_LINES);
+        glVertex2f(px+3,py+3);
+        glVertex2f(px+7,py+3);
+    glEnd();
+
+    glBegin(GL_LINES);
+        glVertex2f(px+1,py+10);
+        glVertex2f(px,py+11);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+3,py+7);
+        glVertex2f(px+3,py+2);
+    glEnd();
+
+    glBegin(GL_LINES);
+        glVertex2f(px+12,py+5);
+        glVertex2f(px+10,py+3);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+10,py+3);
+        glVertex2f(px+10,py-2);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+10,py-2);
+        glVertex2f(px+11,py-3);
+    glEnd();
+
+    glBegin(GL_LINES);
+        glVertex2f(px+9,py-5);
+        glVertex2f(px+16,py+1);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+14,py+2.1);
+        glVertex2f(px+27,py-6);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2f(px+27,py-6);
+        glVertex2f(px+27.5,py-5.2);
+    glEnd();
+
+
+
+    glPopMatrix();
+}
+
+void damagePlayer(int dmg)
+{
+    playerHP -= dmg;
+
+    if (playerHP <= 0) {
+        playerLives--;
+        playerHP = playerMaxHP;   // reset HP for next life
+
+        printf("Life lost! Remaining lives: %d\n", playerLives);
+
+        // Reset player position
+        playerX = windowWidth / 2;
+        playerY = 50;
+    }
+
+    // Game over
+    if (playerLives <= 0) {
+        printf("GAME OVER\n");
+        gameState = 0; // back to menu
+    }
+}
+
+void drawPlayerLifeBar()
+{
+    float barWidth  = 120.0f;
+    float barHeight = 10.0f;
+
+    float marginX = 15.0f;
+    float marginY = 15.0f;
+
+    float hpRatio = (float)playerHP / playerMaxHP;
+    float hpWidth = barWidth * hpRatio;
+
+    float x = marginX;
+    float y = marginY;
+
+    // Background (red)
+    glColor3f(0.6f, 0.0f, 0.0f);
     glBegin(GL_QUADS);
         glVertex2f(x, y);
         glVertex2f(x + barWidth, y);
@@ -1014,16 +817,689 @@ void drawPlayerLifeBar() {
         glVertex2f(x, y + barHeight);
     glEnd();
 
-    // HP
+    // HP (green)
     glColor3f(0.0f, 1.0f, 0.0f);
     glBegin(GL_QUADS);
         glVertex2f(x, y);
-        glVertex2f(x + barWidth * ratio, y);
-        glVertex2f(x + barWidth * ratio, y + barHeight);
+        glVertex2f(x + hpWidth, y);
+        glVertex2f(x + hpWidth, y + barHeight);
         glVertex2f(x, y + barHeight);
     glEnd();
 }
 
+// -------------------- Draw Bullets ---------------
+void drawBullets() {
+    for (auto &b : bullets) {
+        // Main laser body (yellow)
+        glColor3f(1.0f, 1.0f, 0.0f);
+        glBegin(GL_QUADS);
+            glVertex2f(b.x - 2, b.y);      // bottom-left
+            glVertex2f(b.x + 2, b.y);      // bottom-right
+            glVertex2f(b.x + 2, b.y + 10); // top-right
+            glVertex2f(b.x - 2, b.y + 10); // top-left
+        glEnd();
+
+        // Laser tip (bright white)
+        glColor3f(1.0f, 1.0f, 1.0f);
+        glBegin(GL_TRIANGLES);
+            glVertex2f(b.x - 2, b.y + 10); // left base of tip
+            glVertex2f(b.x + 2, b.y + 10); // right base of tip
+            glVertex2f(b.x, b.y + 15);     // tip point
+        glEnd();
+    }
+}
+
+// -------------------- Draw Enemy -----------------
+void drawlvl1Enemy() {
+    // -------- Main Body (red triangle) --------
+    glColor3f(0.8f, 0.0f, 0.0f); // red
+    glBegin(GL_TRIANGLES);
+        glVertex2f(enemyX, enemyY + 20);    // nose
+        glVertex2f(enemyX - 15, enemyY - 20); // bottom-left
+        glVertex2f(enemyX + 15, enemyY - 20); // bottom-right
+    glEnd();
+
+    // -------- Cockpit / Core (dark red) --------
+    glColor3f(0.5f, 0.0f, 0.0f);
+    glBegin(GL_POLYGON);
+        glVertex2f(enemyX - 5, enemyY + 5);
+        glVertex2f(enemyX + 5, enemyY + 5);
+        glVertex2f(enemyX + 3, enemyY - 5);
+        glVertex2f(enemyX - 3, enemyY - 5);
+    glEnd();
+
+    // -------- Left spike wing --------
+    glColor3f(0.6f, 0.0f, 0.0f);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(enemyX - 15, enemyY - 5);
+        glVertex2f(enemyX - 25, enemyY - 15);
+        glVertex2f(enemyX - 15, enemyY - 15);
+    glEnd();
+
+    // -------- Right spike wing --------
+    glBegin(GL_TRIANGLES);
+        glVertex2f(enemyX + 15, enemyY - 5);
+        glVertex2f(enemyX + 25, enemyY - 15);
+        glVertex2f(enemyX + 15, enemyY - 15);
+    glEnd();
+
+    // -------- Thruster flames (small, dark orange) --------
+    glColor3f(1.0f, 0.3f, 0.0f);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(enemyX - 5, enemyY - 20); // left thruster
+        glVertex2f(enemyX + 5, enemyY - 20); // right thruster
+        glVertex2f(enemyX, enemyY - 30);     // tip
+    glEnd();
+
+    // -------- Aggressive detailing (spikes) --------
+    glColor3f(0.3f, 0.0f, 0.0f);
+    glBegin(GL_LINES);
+        glVertex2f(enemyX - 15, enemyY - 5);
+        glVertex2f(enemyX - 25, enemyY - 15);
+
+        glVertex2f(enemyX + 15, enemyY - 5);
+        glVertex2f(enemyX + 25, enemyY - 15);
+    glEnd();
+}
+
+void drawlvl4Enemy(){
+   float ex = enemyX , ey = enemyY ;
+
+    glPushMatrix();
+    glTranslated(ex, ey, 0);
+    glScalef(4, 4, 0);
+    glTranslated(-ex, -ey, 0);
+
+    glColor3f(0.43f, 0.45f, 0.47f);
+    glBegin(GL_QUADS);
+        glVertex2f(ex,ey+20);
+        glVertex2f(ex+2,ey+20);
+        glVertex2f(ex+5,ey+15);
+        glVertex2f(ex,ey+10);
+    glEnd();
+
+    glColor3f(0.47f, 0.08f, 0.08f);
+    glBegin(GL_POLYGON);
+        glVertex2f(ex+5,ey+15);
+        glVertex2f(ex,ey+10);
+        glVertex2f(ex,ey-5);
+        glVertex2f(ex+12,ey-5);
+        glVertex2f(ex+15,ey+5);
+        glVertex2f(ex+15,ey+10);
+    glEnd();
+
+    glColor3f(0,0,0);
+    glBegin(GL_QUADS);
+        glVertex2f(ex,ey);
+        glVertex2f(ex,ey-1);
+        glVertex2f(ex+8,ey-1);
+        glVertex2f(ex+8,ey);
+    glEnd();
+
+    drawCircle(ex+5,ey+5,2.0);
+
+    glColor3f(1,1,1);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(ex,ey-5);
+        glVertex2f(ex,ey-10);
+        glVertex2f(ex+3,ey-5);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(ex+3,ey-5);
+        glVertex2f(ex+5,ey-10);
+        glVertex2f(ex+8,ey-5);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(ex+8,ey-5);
+        glVertex2f(ex+12,ey-5);
+        glVertex2f(ex+10,ey-10);
+    glEnd();
+
+
+    //--hand right
+    glColor3f(0.35f, 0.06f, 0.07f);
+    glBegin(GL_POLYGON);
+        glVertex2f(ex+16,ey+10);
+        glVertex2f(ex+15,ey+10);
+        glVertex2f(ex+15,ey+5);
+        glVertex2f(ex+20,ey-10);
+        glVertex2f(ex+23,ey-10);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(ex+15,ey-15);
+        glVertex2f(ex+20,ey-10);
+        glVertex2f(ex+23,ey-10);
+    glEnd();
+    //--hand left
+    glBegin(GL_POLYGON);
+        glVertex2f(ex-16,ey+10);
+        glVertex2f(ex-15,ey+10);
+        glVertex2f(ex-15,ey+5);
+        glVertex2f(ex-20,ey-10);
+        glVertex2f(ex-23,ey-10);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(ex-15,ey-15);
+        glVertex2f(ex-20,ey-10);
+        glVertex2f(ex-23,ey-10);
+    glEnd();
+
+
+
+    //---left
+    glColor3f(0.43f, 0.45f, 0.47f);
+    glBegin(GL_QUADS);
+        glVertex2f(ex,ey+20);
+        glVertex2f(ex-2,ey+20);
+        glVertex2f(ex-5,ey+15);
+        glVertex2f(ex,ey+10);
+    glEnd();
+
+    glColor3f(0.47f, 0.08f, 0.08f);
+    glBegin(GL_POLYGON);
+        glVertex2f(ex-5,ey+15);
+        glVertex2f(ex,ey+10);
+        glVertex2f(ex,ey-5);
+        glVertex2f(ex-12,ey-5);
+        glVertex2f(ex-15,ey+5);
+        glVertex2f(ex-15,ey+10);
+    glEnd();
+
+    glColor3f(0,0,0);
+    glBegin(GL_QUADS);
+        glVertex2f(ex,ey);
+        glVertex2f(ex,ey-1);
+        glVertex2f(ex-8,ey-1);
+        glVertex2f(ex-8,ey);
+    glEnd();
+
+    drawCircle(ex-5,ey+5,2.0);
+
+    glColor3f(1,1,1);
+    glBegin(GL_TRIANGLES);
+        glVertex2f(ex,ey-5);
+        glVertex2f(ex,ey-10);
+        glVertex2f(ex-3,ey-5);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(ex-3,ey-5);
+        glVertex2f(ex-5,ey-10);
+        glVertex2f(ex-8,ey-5);
+    glEnd();
+    glBegin(GL_TRIANGLES);
+        glVertex2f(ex-8,ey-5);
+        glVertex2f(ex-12,ey-5);
+        glVertex2f(ex-10,ey-10);
+    glEnd();
+
+    glPopMatrix();
+}
+
+void drawlvl5Enemy()
+{
+    int bx = enemyX,by =enemyY;
+    //left arm
+    glPushMatrix();
+    glTranslated(bx, by, 0);   // move to position
+    glScalef(4, 4, 0); // scale ×2
+    glTranslated(-bx, -by, 0); // move back
+    //ru1
+    metalBlue();
+    glBegin(GL_POLYGON);
+        glVertex2d(bx+15,by-2);
+        glVertex2d(bx+15,by-3);
+        glVertex2d(bx+10,by-10);
+        glVertex2d(bx+7,by-6);
+        glVertex2d(bx+9,by+1);
+        glVertex2d(bx+11,by-1);
+        glVertex2d(bx+15,by-2);
+    glEnd();
+    bodyRed();
+    //--la
+    glBegin(GL_POLYGON);
+        glVertex2d(bx-10,by+1);
+        glVertex2d(bx-8.5,by+2);
+        glVertex2d(bx-6,by-2);
+        glVertex2d(bx-11,by-5);
+        glVertex2d(bx-14,by-5);
+        glVertex2d(bx-16,by-4);
+        glVertex2d(bx-21,by);
+        glVertex2d(bx-21,by+3);
+        glVertex2d(bx-23,by+4);
+        glVertex2d(bx-20,by+8);
+        glVertex2d(bx-19,by+7);
+        glVertex2d(bx-17,by+6);
+        glVertex2d(bx-16,by+6);
+    glEnd();
+    //-antenna
+    glBegin(GL_POLYGON);
+        glVertex2d(bx-13,by+15);
+        glVertex2d(bx-12,by+16);
+        glVertex2d(bx-10,by+16);
+        glVertex2d(bx-4,by+11);
+        glVertex2d(bx-8,by+5);
+        glVertex2d(bx-12,by+10);
+        glVertex2d(bx-13,by+13);
+        glVertex2d(bx-13,by+15);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex2d(bx-13,by+15);
+        glVertex2d(bx-18,by+20);
+    glEnd();
+    drawCircle(bx-18, by+20, 1.0);
+
+    //Circle Draw
+    //R1
+    //eye
+    glColor3f(0,0,1);
+    metalBlue();
+    drawCircle(bx-5, by, 4.0);
+    drawCircle(bx-3, by+5, 6.0);
+
+    eyeYellow();
+    drawCircle(bx-3, by+5, 5.0);
+
+    bodyRed();
+    drawCircle(bx-3, by+5, 4.0);
+    glColor3f(0,0,0);
+    drawCircle(bx-3, by+5, 3.0);
+
+    bodyRed();
+    //glowGreen();
+    drawCircle(bx-6, by-5, 4.0);
+    drawCircle(bx-6, by-10, 4.0);
+    drawCircle(bx-1, by-10, 4.0);
+    drawCircle(bx-1, by-4, 4.0);
+    drawCircle(bx+6, by+5,4.5);
+    drawCircle(bx+5, by+2,4.0);
+    drawCircle(bx+3, by+1,4.0);
+    drawCircle(bx+5, by-1,4.0);
+    drawCircle(bx+6, by-2,4.0);
+    drawCircle(bx+3, by-10,2.0);
+    drawCircle(bx+3, by-8,3.0);
+    drawCircle(bx-4, by-14,3.0);
+    drawCircle(bx, by-12,4.0);
+    //ru2
+    bodyRed();
+    glBegin(GL_POLYGON);
+        glVertex2f(bx+7,by-6);
+        glVertex2f(bx+4,by-6);
+        glVertex2f(bx+13,by+3.5);
+        glVertex2f(bx+15,by);
+        glVertex2f(bx+9,by+1);
+        glVertex2f(bx+7,by-6);
+    glEnd();
+    //ru3
+    glBegin(GL_POLYGON);
+        glVertex2f(bx+4,by-6);
+        glVertex2f(bx+14,by+4);
+        glVertex2f(bx+10,by+7);
+        glVertex2f(bx+10,by+5);
+        glVertex2f(bx+9,by+4);
+        glVertex2f(bx+9,by+3);
+        glVertex2f(bx+7,by+2);
+        glVertex2f(bx+7,by+1);
+        glVertex2f(bx+2,by-5);
+        glVertex2f(bx,by-5);
+        glVertex2f(bx+2,by-5);
+        glVertex2f(bx+4,by-6);
+    glEnd();
+
+
+    //RA--
+    //--ra
+    glBegin(GL_POLYGON);
+        glVertex2d(bx+12,by-11);
+        glVertex2d(bx+12,by-16);
+        glVertex2d(bx+20,by-15);
+        glVertex2d(bx+20,by-3);
+        glVertex2d(bx+18.8,by-2);
+        glVertex2d(bx+19,by-1);
+        glVertex2d(bx+18,by);
+        glVertex2d(bx+17,by);
+        glVertex2d(bx+4,by-9);
+        glVertex2d(bx+5,by-10);
+        glVertex2d(bx+6,by-11);
+        glVertex2d(bx+12,by-11);
+    glEnd();
+    glBegin(GL_POLYGON);
+        glVertex2d(bx+12,by-16);
+        glVertex2d(bx,by-29);
+        glVertex2d(bx+3,by-33);
+        glVertex2d(bx+20,by-15);
+        glVertex2d(bx+12,by-16);
+    glEnd();
+    glBegin(GL_POLYGON);
+        glVertex2d(bx+2,by-29);
+        glVertex2d(bx-1,by-30);
+        glVertex2d(bx-4,by-30);
+        glVertex2d(bx-9,by-28);
+        glVertex2d(bx-5,by-31);
+        glVertex2d(bx,by-33);
+        glVertex2d(bx+3,by-33);
+        glVertex2d(bx+2,by-29);
+    glEnd();
+    glPopMatrix();
+}
+
+void updateLevel5Timer() {
+    if(!timerActive) return;
+
+    int currentTime = glutGet(GLUT_ELAPSED_TIME); // milliseconds
+    if(currentTime - lastTimerUpdate >= 1000) {  // 1 second elapsed
+        level5Timer--;   // reduce 1 second
+        lastTimerUpdate = currentTime;
+    }
+
+    // Time up -> Game Over
+    if(level5Timer <= 0) {
+        timerActive = false;
+        printf("TIME UP! Game Over\n");
+        playerLives--;
+        playerHP = playerMaxHP;
+        gameState = 0; // go back to menu
+    }
+}
+
+
+void drawBossLifeBar(float x, float y)
+{
+    float barWidth  = 60.0f;
+    float barHeight = 6.0f;
+
+    float hpRatio = (float)bossHP / bossMaxHP;
+    float hpWidth = barWidth * hpRatio;
+
+    // Background (red)
+    glColor3f(0.6, 0.0, 0.0);
+    glBegin(GL_QUADS);
+        glVertex2f(x - barWidth/2, y);
+        glVertex2f(x + barWidth/2, y);
+        glVertex2f(x + barWidth/2, y + barHeight);
+        glVertex2f(x - barWidth/2, y + barHeight);
+    glEnd();
+
+    // HP (green)
+    glColor3f(0.0, 1.0, 0.0);
+    glBegin(GL_QUADS);
+        glVertex2f(x - barWidth/2, y);
+        glVertex2f(x - barWidth/2 + hpWidth, y);
+        glVertex2f(x - barWidth/2 + hpWidth, y + barHeight);
+        glVertex2f(x - barWidth/2, y + barHeight);
+    glEnd();
+}
+
+void drawBossBullets() {
+    for (auto &b : bossBullets) {
+        glColor3f(1.0f, 0.2f, 0.2f); // red bullet
+        glBegin(GL_QUADS);
+            glVertex2f(b.x - 3, b.y);
+            glVertex2f(b.x + 3, b.y);
+            glVertex2f(b.x + 3, b.y + 10);
+            glVertex2f(b.x - 3, b.y + 10);
+        glEnd();
+    }
+}
+
+void drawBossBombs() {
+    for(auto &b : bossBombs) {
+        if(!b.exploded) {
+            glColor3f(0.8f, 0.5f, 0.0f); // orange bomb
+            drawCircle(b.x, b.y, 12.0);
+        } else {
+            // Draw explosion
+            glColor3f(1.0f, 0.6f, 0.0f); // bright orange
+            drawCircle(b.x, b.y, 18.0);
+            glColor3f(1.0f, 0.2f, 0.0f); // red inner
+            drawCircle(b.x, b.y, 13.0);
+        }
+    }
+
+    for(int i = 0; i < bossBombs.size(); i++) {
+        if(bossBombs[i].exploded) {
+            bossBombs.erase(bossBombs.begin() + i);
+            i--;
+        }
+    }
+}
+
+void fireBossBullet(float startX, float startY) {
+    float targetX = playerX;
+    float targetY = playerY;
+
+    float dx =  targetX - startX;
+    float dy = targetY - startY ;
+
+    float length = sqrt(dx*dx + dy*dy);
+    if (length == 0) length = 1;
+
+    float speed = 5.0f;
+
+    BossBullet b;
+    b.x = startX;
+    b.y = startY;
+    b.vx = (dx / length) * speed;
+    b.vy = (dy / length) * speed;
+
+    bossBullets.push_back(b);
+}
+
+// -------------------- Update Game ----------------
+void update(int value) {
+    if (gameState == 1) { // PLAYING
+        coinTimer++;
+        if (coinTimer > 300 && level >=4 ) { // ~5 seconds (16ms * 300)
+            coins.push_back({
+                (float)(rand() % (windowWidth - 40) + 20),
+                (float)windowHeight + 10,   // start from top
+                2.5f + rand()%3             // falling speed
+            });
+            coinTimer = 0;
+        }
+
+        for (int i = 0; i < coins.size(); i++) {
+            // Fall down
+            coins[i].y -= coins[i].speed;
+
+            // Player collision
+            /*
+            bossBombs[i].x >= playerX - playerWidth / 2 &&
+                        bossBombs[i].x <= playerX + playerWidth / 2 &&
+                        bossBombs[i].y >= playerY - playerHeight / 2 &&
+                        bossBombs[i].y <= playerY + playerHeight / 2
+            */
+
+            if (coins[i].x >= playerX - playerWidth / 2 &&
+                        coins[i].x <= playerX + playerWidth / 2 &&
+                        coins[i].y >= playerY - playerHeight / 2 &&
+                        coins[i].y <= playerY + playerHeight / 2){
+
+                coinCount++;
+                coins.erase(coins.begin() + i);
+                i--;
+                continue;
+            }
+
+            if (coins[i].y < -10) coins.erase(coins.begin() + i--);
+        }
+
+        // Player movement
+        if (keyLeft && playerX > 20) playerX -= playerSpeed;
+        if (keyRight && playerX < windowWidth - 20) playerX += playerSpeed;
+
+        // player Bullet movement
+        for (int i = 0; i < bullets.size(); i++) {
+            bullets[i].y += 10;
+            if (bullets[i].y > windowHeight) {
+                bullets.erase(bullets.begin() + i);
+                i--;
+            }
+        }
+
+        if(level<4){
+            // Enemy movement
+            enemyY -= enemySpeed;
+            if (enemyY < 0 ) {
+                enemyY = 550;
+                enemyX = rand() % (windowWidth - 40) + 20;
+            }
+
+            // Collision detection
+            for (int i = 0; i < bullets.size(); i++) {
+                if (abs(bullets[i].x - enemyX) < 20 &&
+                    abs(bullets[i].y - enemyY) < 20) {
+
+                    bullets.erase(bullets.begin() + i);
+                    enemyY = 550;
+                    enemyX = rand() % (windowWidth - 40) + 20;
+                    break;
+                }
+            }
+        }
+
+        if (level == 5 || level==4) {
+            // Move enemy
+            if (level==5)updateLevel5Timer();
+            enemyX += enemyDX;
+            enemyY += enemyDY;
+
+            // Window bounds (consider boss size)
+            float minX = bossWidth / 2;
+            float maxX = windowWidth - bossWidth / 2;
+
+            float minY = 300 + bossHeight / 2;  // boss stays above y=300
+            float maxY = 600 - bossHeight / 2;  // boss stays below y=600
+
+
+            if (enemyX <= minX || enemyX >= maxX) {
+                enemyDX = (rand() % 5 + 1) * (rand() % 2 ? 1 : -1);
+                // Make sure enemy is inside
+                if (enemyX < minX) enemyX = minX;
+                if (enemyX > maxX) enemyX = maxX;
+            }
+
+            // Bounce & randomize direction on Y bounds
+            if (enemyY <= minY || enemyY >= maxY) {
+                enemyDY = (rand() % 5 + 1) * (rand() % 2 ? 1 : -1);
+                // Make sure enemy is inside
+                if (enemyY < minY) enemyY = minY;
+                if (enemyY > maxY) enemyY = maxY;
+            }
+
+            bossFireCooldown--;
+            if (bossFireCooldown <= 0) {
+                fireBossBullet(enemyX, enemyY - bossHeight/2);
+                bossFireCooldown = 60; // fire rate
+            }
+
+
+            // Move boss bullets
+            for (int i = 0; i < bossBullets.size(); i++) {
+                bossBullets[i].x += bossBullets[i].vx;
+                bossBullets[i].y += bossBullets[i].vy;
+
+                // Remove if off screen
+                if (bossBullets[i].x < 0 || bossBullets[i].x > windowWidth ||
+                    bossBullets[i].y < 0 || bossBullets[i].y > windowHeight) {
+                    bossBullets.erase(bossBullets.begin() + i);
+                    i--;
+                    continue;
+                }
+
+                // Collision with player
+                if (bossBullets[i].x >= playerX - playerWidth / 2 &&
+                    bossBullets[i].x <= playerX + playerWidth / 2 &&
+                    bossBullets[i].y >= playerY - playerHeight / 2 &&
+                    bossBullets[i].y <= playerY + playerHeight / 2) {
+
+                    damagePlayer(5);
+                    printf("Player hit by boss!\n");
+
+                    bossBullets.erase(bossBullets.begin() + i);
+                    i--;
+                }
+            }
+
+
+            // Boss dropping bombs
+            bossBombCooldown--;
+            if (bossBombCooldown <= 0) {
+                bossBombs.push_back({enemyX, enemyY - 50, -4.0f, false}); // slower than bullets
+                bossBombCooldown = 400 + rand()%100; // randomize cooldown for unpredictability
+            }
+
+            // Move bombs
+            for(int i=0; i<bossBombs.size(); i++) {
+                if(bossBombs[i].exploded) continue;
+
+                bossBombs[i].y += bossBombs[i].speedY;
+
+                // Check collision with player
+                if(bossBombs[i].x >= playerX - playerWidth / 2 &&
+                        bossBombs[i].x <= playerX + playerWidth / 2 &&
+                        bossBombs[i].y >= playerY - playerHeight / 2 &&
+                        bossBombs[i].y <= playerY + playerHeight / 2) {
+                    bossBombs[i].exploded = true;
+                    printf("Player hit by bomb!\n");
+                    damagePlayer(20);
+                    // Optional: reduce player life or reset player
+                }
+
+                // Check if bomb reaches bottom of screen
+                if(bossBombs[i].y <= 0) {
+                    bossBombs[i].exploded = true;
+                }
+            }
+
+
+                // Bullet collision
+            for (int i = 0; i < bullets.size(); i++) {
+                if (bullets[i].x >= enemyX - bossWidth / 2 &&
+                        bullets[i].x <= enemyX + bossWidth / 2 &&
+                        bullets[i].y >= enemyY - bossHeight / 2 &&
+                        bullets[i].y <= enemyY + bossHeight / 2)
+                    {
+                        bullets.erase(bullets.begin() + i);
+                        bossHP--;
+
+                        if (bossHP <= 0) {
+                            level++;
+                            enemyX = -1000;
+                            enemyY = -1000;
+                        }
+                        break;
+                    }
+            }
+        }
+    }
+    glutPostRedisplay();
+    glutTimerFunc(16, update, 0);
+}
+
+//------------levels
+void level1() {
+    printf("Level 1 Started!\n");
+    drawlvl1Player();
+    drawBullets();
+    drawlvl1Enemy();
+}
+void level2() { printf("Level 2 Started!\n"); }
+void level3() { printf("Level 3 Started!\n"); }
+
+void level4() {
+     printf("Level 4 Started!\n");
+    drawlvl4Enemy();
+    drawBossLifeBar(enemyX, enemyY + 50);
+
+    drawBullets();
+    drawBossBullets();
+    drawCoins();
+
+    drawlvl4Player();
+
+    drawPlayerLifeBar();
+    drawHUD();
+}
 
 void level5() {
     printf("Level 5 Started!\n");
@@ -1045,19 +1521,14 @@ void display() {
 
     drawBackground();
 
-    if (gameState == 0) { // MENU
+    if (!gameState) {
         drawMenu();
-    }
-    else if (gameState == 1 && level ==1) { // PLAYING
-        drawPlayer();
-        drawBullets();
-        drawEnemy();
-    }
-    else if (gameState == 1 && level ==4){
-        level4();
-    }
-    else if(gameState == 1 && level ==5){
-        level5();
+    }else{
+        if(level == 1) level1();
+        if(level == 2){}
+        if(level == 3){}
+        if(level == 4) level4();
+        if(level == 5) level5();
     }
 
     glFlush();
@@ -1065,9 +1536,13 @@ void display() {
 
 // -------------------- Keyboard -------------------
 void keyPress(unsigned char key, int x, int y) {
-    // Shoot
-    if (gameState == 1 && key == ' ') {
-        bullets.push_back({playerX, playerY + 20});
+    if (key == ' ' && gameState==1) {
+        int currentTime = glutGet(GLUT_ELAPSED_TIME);
+
+        if (currentTime - lastFireTime >= fireDelay) {
+            bullets.push_back({playerX, playerY + 20});
+            lastFireTime = currentTime;
+        }
     }
     //backtomenu
     if (gameState == 1 && key == 27) {   // ESC key
@@ -1084,6 +1559,7 @@ void keyUp(int key, int x, int y) {
     if (key == GLUT_KEY_LEFT) keyLeft = false;
     if (key == GLUT_KEY_RIGHT) keyRight = false;
 }
+
 //--------------mourse handle
 void mouseClick(int button, int state, int mouseX, int mouseY) {
     if(button == GLUT_LEFT_BUTTON && state == GLUT_DOWN && gameState == 0) {
@@ -1124,6 +1600,7 @@ void init() {
 void reshape(int w, int h) {
     glutReshapeWindow(windowWidth, windowHeight);
 }
+
 // -------------------- Main -----------------------
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
