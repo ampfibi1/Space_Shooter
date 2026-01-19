@@ -1523,28 +1523,12 @@ void display() {
 
     if (!gameState) {
         drawMenu();
-<<<<<<< HEAD
     }else{
         if(level == 1) level1();
         if(level == 2){}
         if(level == 3){}
         if(level == 4) level4();
         if(level == 5) level5();
-=======
-    }
-    else if (gameState == 1 && level ==1) { // PLAYING
-        drawPlayer();
-        drawBullets();
-        drawEnemy();
-
-    drawPlayerLifeBar();
-    }
-    else if (gameState == 1 && level ==4){
-        level4();
-    }
-    else if(gameState == 1 && level ==5){
-        level5();
->>>>>>> b8669cd1857d4e7d4cf3c61dc72d17e1dcd1933c
     }
 
     glFlush();
